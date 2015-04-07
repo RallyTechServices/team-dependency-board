@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title><%= name %></title>
+    <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
+    <!--  Build Date: <%= new Date() %> -->
+    
+    <script type="text/javascript">
+        var APP_BUILD_DATE = "<%= new Date() %>";
+        var CHECKSUM = [%= checksum %];
+    </script>
+    
+    <script type="text/javascript" src="/apps/<%= sdk %>/sdk.js"></script>
+
+    <script type="text/javascript">
+        Rally.onReady(function() {
+            <%= js_contents %>
+            
+               Rally.launchApp('<%= className %>', {
+                   name: '<%= name %>'
+               });
+        });
+    </script>
+    
+    <style type="text/css">
+<%= style_contents %>
+    </style>
+    <style type="text/css" title="printCards">
+        /* PLEASE LEAVE THIS STYLESHEET INLINE SINCE TITLE IS NECESSARY */
+        @media print {
+            #interface {
+                display: none;
+            }
+
+            .pb {
+                page-break-after: always;
+                clear: both;
+            }
+        }
+
+        .pb {
+            page-break-after: always;
+            clear: both;
+        }
+        #buttonDiv,
+        #iterationDropdown {
+            display: inline;
+        }
+
+        #interface, #printSection {
+            margin: 20px;
+        }
+
+        html {
+            background-color: #fff;
+            color: #000;
+            font: 14pt / 1.26 Arial, Helvetica, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+
+        .cb {
+            clear: both;
+        }
+
+        .artifact {
+            background-color: #fff;
+            border: 2px solid #000;
+            float: left;
+            height: 3.2in;
+            margin: 0.1in 0.1in 0.1in 0.1in;
+            position: relative;
+            overflow: hidden;
+            width: 4.3in;
+        }
+
+        .header {
+            border: 1px;
+            border-bottom-style: solid;
+            display: table-cell;
+            height: 40px;
+            vertical-align: middle;
+            width: 4.3in;
+        }
+
+        .cardTitle {
+            font: bold 24px Genova, sans-serif;
+            padding-top: 3em;
+            text-align: center;
+        }
+
+        .description {
+            float: left;
+            font: 12pt Georgia, sans-serif;
+            margin: 15em auto 0 auto;
+            padding-left: 1.0em;
+            padding-right: 1.0em;
+            overflow-y: hidden;
+            width: 100%;
+            word-wrap: break-word;
+        }
+
+        .cardUpperRight {
+            text-align: right;
+            font: bold 20px Arial, Helvetica, sans-serif;
+            top: 0.5em;
+            right: 0.5em;
+            position: absolute;
+        }
+
+        .cardUpperInnerLeft {
+            text-align: center;
+            font: bold 20px Arial, Helvetica, sans-serif;
+            top: 0.5em;
+            left: 4.0em;
+            width: 6.0em;
+            position: absolute;
+        }
+        .cardUpperInnerRight {
+            text-align: center;
+            font: bold 20px Arial, Helvetica, sans-serif;
+            top: 0.5em;
+            right: 4.0em;
+            width: 6.0em;
+            position: absolute;
+        }
+        .cardUpperLeft {
+            position: absolute;
+            font: bold 20px Arial, Helvetica, sans-serif;
+            top: 0.5em;
+            left: 0.5em;
+        }
+
+        .cardLowerLeft {
+            bottom: 0.5em;
+            left: 0.5em;
+            position: absolute;
+        }
+
+        .cardLowerRight {
+            bottom: 0.5em;
+            position: absolute;
+            right: 0.5em;
+        }
+
+        .cardUpperCenter {
+            font: bold 20px Arial, Helvetica, sans-serif;
+            text-align: center;
+            top: 0.5em;
+            position: absolute;
+            right: 0.5in;
+            display: inline;
+            width: 3in;
+        }
+
+        .content {
+            height: 2.4in;
+            overflow: hidden;
+            width: 4.3in;
+        }
+
+    </style>
+</head>
+<body></body>
+</html>
