@@ -68,7 +68,6 @@ Ext.define("team-dependency-board", {
                     if (tags && tags._tagsNameArray){
 
                         Ext.each(tags._tagsNameArray, function(tag){
-                            console.log('test',giverPattern, tag);
                             if (giverPattern.test(tag.Name)){
                                 giver += tag.Name + "<br/>";
                             }
@@ -96,6 +95,7 @@ Ext.define("team-dependency-board", {
     },
     _print: function(){
         var releaseName = this.cbRelease.getRecord().get(this.cbRelease.displayField);
+
         Ext.create('Rally.data.wsapi.Store',{
             fetch: ['FormattedID','Iteration','Project','Name','Tags'],
             model: 'HierarchicalRequirement',
@@ -133,6 +133,14 @@ Ext.define("team-dependency-board", {
             xtype: 'rallycardboard',
             attribute: 'Iteration',
             context: this.getContext(),
+            selectedRelease: this.cbRelease.getRecord(),
+            enableRanking: false,
+            enableCrossColumnRanking: false,
+            columnConfig: {
+                enableCrossRowDragging: false,
+                dropControllerConfig: false,
+                plugins: ['rallycardboardcollapsiblecolumns']
+            },
             rowConfig: {
                 field: 'Project'
             },

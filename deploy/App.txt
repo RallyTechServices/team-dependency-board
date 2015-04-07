@@ -3,11 +3,11 @@
 <head>
     <title>Team Dependency Board</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Tue Apr 07 2015 14:43:18 GMT-0700 (PDT) -->
+    <!--  Build Date: Tue Apr 07 2015 15:50:57 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Tue Apr 07 2015 14:43:18 GMT-0700 (PDT)";
-        var CHECKSUM = 26005233104;
+        var APP_BUILD_DATE = "Tue Apr 07 2015 15:50:57 GMT-0700 (PDT)";
+        var CHECKSUM = 33000940446;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -152,7 +152,7 @@ Ext.override(Rally.ui.cardboard.CardBoard,{
                     columnHeaderConfig: {
                         headerTpl: "{name}",
                         headerData: {
-                            name: "Backlog"
+                            name: "Unscheduled"
                         }
                     }
                 });
@@ -164,15 +164,15 @@ Ext.override(Rally.ui.cardboard.CardBoard,{
     _getLocalIterations: function(retrievedColumns) {
         var me = this;
 
-        //var start_date = this.startIteration.get('formattedStartDate');
-        //var filters = [{property:'StartDate',operator:'>=',value:start_date}];
+        var start_date = this.selectedRelease.get('ReleaseStartDate');
+        var filters = [{property:'StartDate',operator:'>=',value:start_date}];
 
         var iteration_names = [];
 
         Ext.create('Rally.data.WsapiDataStore',{
             model:me.attribute,
             autoLoad: true,
-            //filters: filters,
+            filters: filters,
             context: { projectScopeUp: false, projectScopeDown: false },
             sorters: [
                 {
@@ -343,184 +343,7 @@ Ext.override(Rally.ui.cardboard.Column,{
     }
 });
 
-Ext.define('Rally.ui.cardboard.plugin.CardContentLeft', {
-    alias: 'plugin.rallycardcontentleft',
-    extend: 'Ext.AbstractPlugin',
-    requires: [
-        'Rally.ui.cardboard.CardRendererFactory',
-        'Ext.XTemplate',
-        'Rally.ui.renderer.template.FormattedIDTemplate'
-    ],
-
-    mixins: {
-        observable: 'Ext.util.Observable'
-    },
-
-    /**
-     * @private
-     * Fields that are NOT children of the rui-card-content div.
-     */
-    nonDisplayableFields: ['PlanEstimate', 'FormattedID', 'Owner', 'PreliminaryEstimate', 'Estimate'],
-
-    footerFields: ['PercentDoneByStoryPlanEstimate', 'PercentDoneByStoryCount', 'UserStories', 'PredecessorsAndSuccessors', 'Milestones'],
-
-    statics: {
-        getIdTpl: function() {
-            if (!this.idTpl) {
-                this.idTpl = Ext.create('Rally.ui.renderer.template.FormattedIDTemplate');
-            }
-
-            return this.idTpl;
-        },
-
-        getHeaderTpl: function() {
-            if (!this.headerTpl) {
-                this.headerTpl = Ext.create('Ext.XTemplate', [
-                    '<div class="left-header">',
-                    '<div class="id" style="min-width: {idWidth}px">{formattedId}</div>',
-                    '<tpl if="owner"><div class="owner-name">{owner}</div></tpl>',
-                    '</div>']);
-            }
-
-            return this.headerTpl;
-        }
-    },
-
-    constructor: function(config) {
-        this.addEvents(
-            /**
-             * @event fieldclick
-             * Fires when a field displayed on the content portion of the card is clicked.
-             *
-             * @param {String} fieldName The name of the field that was clicked
-             * @param {Rally.ui.cardboard.Card} card The card whose field was clicked
-             */
-            'fieldclick'
-        );
-        this.callParent(arguments);
-        this.mixins.observable.constructor.call(this);
-    },
-
-    init: function(card) {
-        this.callParent(arguments);
-        this.card = card;
-        card.contentLeftPlugin = this;
-        card.on('afterrender', this._onAfterRender, this);
-        card.on('rerender', this._onAfterRender, this);
-        card.on('beforedestroy', this._onBeforeDestroy, this);
-
-        card.relayEvents(this, [
-        /**
-         * @event fieldclick
-         * Forwarded event from Rally.ui.cardboard.plugin.CardContent#fieldclick
-         * @member Rally.ui.cardboard.Card
-         * @inheritdoc Rally.ui.cardboard.plugin.CardContent#fieldclick
-         */
-            'fieldclick'
-        ]);
-    },
-
-    destroy: function() {
-        if (this.card) {
-            this.detachListeners();
-            delete this.card.contentLeftPlugin;
-            delete this.card;
-        }
-
-        this.callParent(arguments);
-    },
-
-    detachListeners: function() {
-        if (this.card && this.card.getEl()) {
-            this.card.getEl().down('.rui-card-content').un('click', this._onClick, this);
-        }
-    },
-
-    getDisplayedFields: function() {
-        return this.card.getFieldNames();
-    },
-
-    getHtml: function() {
-        var contentHtml = [],
-            statusHtml = [];
-
-        _.each(
-            _.filter(
-                this.card.getFieldDefinitions(),
-                function(fieldDefinition) {
-                    return this._isDisplayableField(fieldDefinition.name) && !this._isFieldHandledByPlugin(fieldDefinition.name);
-                },
-                this
-            ),
-            function(fieldDefinition) {
-                var fieldHtml = this._getFieldHtml(fieldDefinition);
-                if (fieldHtml) {
-                    if (this._isStatusField(fieldDefinition)) {
-                        statusHtml.push(fieldHtml);
-                    } else {
-                        contentHtml.push(fieldHtml);
-                    }
-                }
-            },
-            this
-        );
-
-        var result = [];
-        result.push('<td class="rui-card-content">');
-        result.push(this.getCardHeader());
-        result.push(contentHtml.join('\n'));
-        result.push(this.getCardFooter());
-
-        if (this._isFieldHandledByPlugin('BlockedReason')) {
-            result.push(this._getBlockedReasonContent());
-        }
-        result.push('<div class="status-content">');
-        result.push(statusHtml.join('\n'));
-        result.push('</div></td>');
-
-        return result.join('\n');
-    },
-
-    _isFieldHandledByPlugin: function(fieldName){
-        return fieldName === 'BlockedReason' && this.card.blockedReasonPlugin && !this.card.blockedReasonPlugin.isBlockedOrBlockedReasonHidden();
-    },
-
-    _isDisplayableField: function(fieldName){
-        return !_.contains(this.nonDisplayableFields.concat(this.footerFields), fieldName);
-    },
-
-    _isStatusField: function(fieldDefinition) {
-        if (fieldDefinition.hasOwnProperty('isStatus')) {
-            return fieldDefinition.isStatus;
-        }
-
-        return Rally.ui.cardboard.CardRendererFactory.isStatusField(fieldDefinition);
-    },
-
-    addField: function(fieldDefinition) {
-        var fieldHtml = this._getFieldHtml(fieldDefinition);
-        if (fieldHtml) {
-            if (this._isStatusField(fieldDefinition)) {
-                this._getStatusContent().createChild(fieldHtml);
-            } else {
-                this._getCardContent().createChild(fieldHtml, this._getStatusContent());
-            }
-        }
-    },
-
-    getFieldEl: function(fieldName) {
-        return this.card.getEl().down('.field-content.' + fieldName);
-    },
-
-    refreshField: function(fieldName) {
-        if(!_.contains(this.nonDisplayableFields, fieldName)) {
-            var el = this.getFieldEl(fieldName),
-                tpl = this._getRenderTpl({name: fieldName});
-            if (el && tpl) {
-                el.update(tpl.apply(this.card.getRecord().getData()));
-            }
-        }
-    },
+Ext.override(Rally.ui.cardboard.plugin.CardContentLeft, {
     /**
      * override to show giver
      */
@@ -554,104 +377,6 @@ Ext.define('Rally.ui.cardboard.plugin.CardContentLeft', {
         }
 
         return fieldDefinition.renderTpl;
-    },
-
-    _getFieldHtml: function(fieldDefinition) {
-        var html = '',
-            cls = '',
-            typeCls = '',
-            tpl = this._getRenderTpl(fieldDefinition);
-
-        if (tpl) {
-            html = tpl.apply(this.card.getRecord().data);
-
-            if (html) {
-                cls = this._isStatusField(fieldDefinition) ? 'status-field ' : '';
-
-                var field = this.card.getRecord().self.getField(fieldDefinition.name);
-                if (field && field.attributeDefinition) {
-                    typeCls = ' type-' + field.attributeDefinition.AttributeType.toLowerCase();
-                }
-                html = '<div class="field-content ' + cls + fieldDefinition.name + typeCls + '">' + html + '</div>';
-            }
-        }
-
-        return html;
-    },
-
-    _getCardContent: function() {
-        return this.card.getEl().down('.rui-card-content');
-    },
-
-    _getStatusContent: function() {
-        return this._getCardContent().down('.status-content');
-    },
-
-    _getBlockedReasonContent: function() {
-        return this.card.blockedReasonPlugin ? this.card.blockedReasonPlugin.getHtml() : '';
-    },
-
-    getCardHeader: function() {
-        var record = this.card.getRecord(),
-            formattedId = record.get('FormattedID'),
-            data = {};
-
-        if (formattedId) {
-            data.idWidth = 20 + (formattedId.length * 8);
-            data.formattedId = this.self.getIdTpl().apply(record.data);
-            data.owner = record.get('Owner') ? record.get('Owner')._refObjectName : null;
-
-            return this.self.getHeaderTpl().apply(data);
-        }
-
-        return '';
-    },
-
-    getCardFooter: function() {
-        var footerHtml = _.reduce(this.footerFields, function (html, fieldName) {
-            var fieldDefinition = _.find(this.card.getFieldDefinitions(), function (fieldDefinition) {
-                return fieldDefinition.name === fieldName;
-            });
-
-            return fieldDefinition ? html + this._getFieldHtml(fieldDefinition) + '\n' : html;
-        }, '', this);
-
-        if (footerHtml.length) {
-            return '<div class="card-footer">' + footerHtml + '</div>';
-        }
-
-        return '';
-    },
-
-    _onAfterRender: function() {
-        this._getCardContent().on('click', this._onClick, this);
-        if(this.card.getEl().down('.formatted-id-template')){
-            this.card.getEl().down('.formatted-id-template').on('mouseenter', this.card.popoverPlugin.showDescription, this.card.popoverPlugin);
-        }
-    },
-
-    _onBeforeDestroy: function() {
-        if (this.card && this.card.getEl() && this.card.getEl().down('.id')){
-            this.card.getEl().down('.formatted-id-template').un('mouseenter', this.card.popoverPlugin.showDescription, this.card.popoverPlugin);
-        }
-    },
-
-    _onClick: function(e) {
-        var target = e.getTarget('.field-content', this._getCardContent(), false);
-        if (!target) {
-            return;
-        }
-
-        var fieldName = _.find(target.className.split(' '), function(className) {
-            return !_.contains(['field-content', 'status-field'], className);
-        });
-        if (Ext.isDefined(fieldName)) {
-            this._onFieldClick(fieldName.replace(/Summary$/, ''), e, target);
-        }
-    },
-
-    _onFieldClick: function(fieldName) {
-        this.fireEvent('fieldclick', fieldName, this.card);
     }
 });
 
@@ -865,7 +590,6 @@ Ext.define("team-dependency-board", {
                     if (tags && tags._tagsNameArray){
 
                         Ext.each(tags._tagsNameArray, function(tag){
-                            console.log('test',giverPattern, tag);
                             if (giverPattern.test(tag.Name)){
                                 giver += tag.Name + "<br/>";
                             }
@@ -893,6 +617,7 @@ Ext.define("team-dependency-board", {
     },
     _print: function(){
         var releaseName = this.cbRelease.getRecord().get(this.cbRelease.displayField);
+
         Ext.create('Rally.data.wsapi.Store',{
             fetch: ['FormattedID','Iteration','Project','Name','Tags'],
             model: 'HierarchicalRequirement',
@@ -930,6 +655,14 @@ Ext.define("team-dependency-board", {
             xtype: 'rallycardboard',
             attribute: 'Iteration',
             context: this.getContext(),
+            selectedRelease: this.cbRelease.getRecord(),
+            enableRanking: false,
+            enableCrossColumnRanking: false,
+            columnConfig: {
+                enableCrossRowDragging: false,
+                dropControllerConfig: false,
+                plugins: ['rallycardboardcollapsiblecolumns']
+            },
             rowConfig: {
                 field: 'Project'
             },
@@ -951,6 +684,379 @@ Ext.define("team-dependency-board", {
 
 });
 
+(function() {
+    var Ext = window.Ext4 || window.Ext;
+
+    /**
+     * @private
+     * A plugin to allow a cardboard column to collapse and expand itself
+     */
+    Ext.define('Rally.ui.cardboard.plugin.CollapsibleColumns', {
+        alias: 'plugin.rallycardboardcollapsiblecolumns',
+        extend: 'Ext.AbstractPlugin',
+        requires: ['Deft.Deferred'],
+        stateful: true,
+        statics: { COLLAPSED_WIDTH: 25 },
+        mixins: ['Rally.clientmetrics.ClientMetricsRecordable'],
+
+        clientMetrics: [
+            {
+                method: '_userInitiatedCollapse',
+                description: 'collapsed column'
+            },
+            {
+                method: '_userInitiatedExpand',
+                description: 'expanded column'
+            }
+        ],
+
+        init: function(column) {
+            this.callParent(arguments);
+            this.column = column;
+            this.cardboard = column.ownerCardboard;
+
+            this.columnExpanded = this._setInitialState();
+
+            this.originalGetMinWidth = this.column.getMinWidth;
+            this.column.getMinWidth = Ext.bind(this.getMinWidth, this);
+
+            this.originalShouldAutoLoadMoreRecords = this.column._shouldAutoLoadMoreRecords;
+            this.column._shouldAutoLoadMoreRecords = Ext.bind(this._shouldAutoLoadMoreRecords, this);
+
+            this.column.mon(this.column, 'afterrender', this._afterColumnRender, this);
+            this.column.mon(this.cardboard, 'columnvisibilitychanged', this._onColumnVisibilityChanged, this);
+
+            this.column.on('rowadd', this._onColumnRowAdd, this);
+        },
+
+        _setInitialState: function() {
+            var columnValue = this.column.getValue() || 'nullValue';
+            this.stateId = this.column.getContext().getScopedStateId(columnValue + '-collapsible');
+            var state = Ext.state.Manager.get(this.stateId);
+            return state ? state.expanded : true;
+        },
+
+        _onColumnClick: function () {
+            if (!this.columnExpanded) {
+                this.expand(Ext.isIE10m);
+            }
+        },
+
+        _onColumnRowAdd: function(column, row) {
+            var contentCell = row.getContentCellFor(column),
+                contentCellContainer = contentCell.parent();
+            contentCell.setVisibilityMode(Ext.Element.DISPLAY);
+            this._setClassForCollapseState(contentCellContainer, !this.columnExpanded);
+            contentCellContainer.on('click', this._onColumnClick, this);
+        },
+
+        _setClassesForCollapseState: function(isCollapsed) {
+            this.column.getColumnHeaderCell().addCls(isCollapsed ? 'collapsed' : 'collapsible').removeCls(isCollapsed ? '' : 'collapsed');
+            _.each(this.column.getContentCellContainers(), function(cell) {
+                this._setClassForCollapseState(cell, isCollapsed);
+            }, this);
+        },
+
+        _setClassForCollapseState: function(cell, isCollapsed) {
+            cell.addCls(isCollapsed ? 'collapsed' : 'collapsible').addCls('collapsible');
+            cell.removeCls(isCollapsed ? '' : 'collapsed');
+        },
+
+        _boardHasRows: function() {
+            return this.cardboard.rowConfig;
+        },
+
+        _afterColumnRender: function() {
+            this.column.on('showpolicy', this._onPolicyChange, this);
+            this.column.on('hidepolicy', this._onPolicyChange, this);
+
+            this._setClassesForCollapseState(false);
+
+            this._addHoverListener(Ext.Array.merge(this.column.getColumnHeaderCell(), this.column.getContentCells()));
+
+            this.column.getColumnHeader().getEl().setVisibilityMode(Ext.Element.DISPLAY);
+            _.invoke(this.column.getContentCells(), 'setVisibilityMode', Ext.Element.DISPLAY);
+
+            this._addCollapseComponents();
+
+            if(this._boardHasRows()) {
+                this._addHiddenSizingRow();
+            }
+
+            if (!this.columnExpanded) {
+                this.collapse(true);
+            }
+        },
+
+        _addHiddenSizingRow: function() {
+            var columnsTBody = this.column.getEl().up('.cardboard').down('.columns'),
+                sizingCellContainer = columnsTBody.down('.sizing-container');
+
+            if(!sizingCellContainer) {
+                sizingCellContainer = columnsTBody.appendChild({
+                    tag: 'tr',
+                    cls: 'sizing-container'
+                });
+            }
+            this.sizingCell = sizingCellContainer.appendChild({
+                tag: 'td',
+                cls: 'sizing-cell'
+            });
+        },
+
+        _addCollapseComponents: function() {
+            var container = Ext.DomHelper.insertFirst(this.column.getColumnHeaderCell(), {
+                tag: 'div',
+                cls: 'expand-collapse-container'
+            });
+
+            this.collapseButton = this._createButton(true, container);
+            this.expandButton = this._createButton(false, container);
+            this.collapsedTitle = Ext.create('Ext.Component', {
+                cls: 'collapsed-title',
+                renderTo: Ext.isIE8 ? this.column.getContentCells()[0] : container,
+                html: this.column.getColumnHeader().getHeaderValue(),
+                hidden: this.columnExpanded,
+                hideMode: 'display'
+            });
+        },
+
+        _createButton: function(isCollapseButton, container) {
+            return Ext.create('Rally.ui.Button', {
+                cls: (isCollapseButton ? 'icon-collapse-column' : 'icon-expand-column') + ' expand-collapse',
+                frame: false,
+                handler: function () {
+                    if (isCollapseButton) {
+                        this._userInitiatedCollapse();
+                    } else {
+                        this._userInitiatedExpand();
+                    }
+                },
+                renderTo: container,
+                hidden: isCollapseButton ? !this.columnExpanded : this.columnExpanded,
+                scope: this
+            });
+        },
+
+        _addHoverListener: function (cells) {
+            _.each(cells, function (cell) {
+                cell.on('mouseover', function () { this._modifyHoverClasses('addCls', cells); }, this);
+                cell.on('mouseout', function () { this._modifyHoverClasses('removeCls', cells); }, this);
+            }, this);
+        },
+
+        _modifyHoverClasses: function (methodName, cells) {
+            _.invoke(cells, methodName, ['mouseover']);
+        },
+
+        _onColumnVisibilityChanged: function () {
+            if (this.columnExpanded) {
+                this.collapseButton.setVisible(!this._isLastExpandedColumn());
+            }
+        },
+
+        getMinWidth: function () {
+            return this.columnExpanded ? this.originalGetMinWidth.call(this.column) : this.self.COLLAPSED_WIDTH;
+        },
+
+        _shouldAutoLoadMoreRecords: function () {
+            return this.columnExpanded && this.originalShouldAutoLoadMoreRecords.call(this.column);
+        },
+
+        _collapseExpandSetup: function (collapsing) {
+            this.columnExpanded = !collapsing;
+            this._saveState();
+
+            if (collapsing) {
+                this.collapseButton.hide();
+                this.collapsedTitle.show();
+                this.column.getColumnHeader().getEl().hide();
+                _.invoke(this.column.getContentCells(), 'hide');
+                this._setClassesForCollapseState(true);
+            } else {
+                this.expandButton.hide();
+                this.collapsedTitle.hide();
+                this.column.getColumnHeader().getEl().show();
+            }
+        },
+
+        _collapseExpandSuccess: function(collapsing) {
+            this.cardboard.fireEvent('headersizechanged', this);
+            this.cardboard.fireEvent('columnvisibilitychanged', this);
+
+            if (collapsing) {
+                this.expandButton.show();
+                if (this.column.dropControllerPlugin){
+                    this.column.dropControllerPlugin.disable();
+                }
+
+                Ext.defer(function() {
+                    _.invoke(this.column.getContentCellContainers(), 'on', 'click', this._onColumnClick, this);
+                    this.column.getColumnHeaderCell().on('click', this._onColumnClick, this);
+                }, 1, this);
+
+            } else {
+                this.collapseButton.show();
+                _.invoke(this.column.getContentCells(), 'show');
+                if (this.column.dropControllerPlugin){
+                    this.column.dropControllerPlugin.enable();
+                }
+
+                this._setClassesForCollapseState(false);
+                _.invoke(this.column.getContentCellContainers(), 'un', 'click', this._onColumnClick, this);
+                this.column.getColumnHeaderCell().un('click', this._onColumnClick, this);
+            }
+        },
+
+        _userInitiatedCollapse: function() {
+            this.collapse(Ext.isIE10m);
+        },
+
+        collapse: function(immediate) {
+            if (this._animating || this._isLastExpandedColumn()) {
+                return;
+            }
+
+            this._collapseExpandSetup(true);
+
+            if (!immediate) {
+                this.collapsedTitle.getEl().setOpacity(0);
+            }
+
+            return this._resizeColumn(immediate).then({
+                success: function () {
+                    this._collapseExpandSuccess(true);
+                },
+                scope: this
+            });
+        },
+
+        _userInitiatedExpand: function() {
+            this.expand(Ext.isIE10m);
+        },
+
+        expand: function(immediate) {
+            if (this._animating) {
+                return;
+            }
+
+            this._collapseExpandSetup(false);
+
+            this.column.autoLoadCards();
+            return this._resizeColumn(immediate).then({
+                success: function () {
+                    this._collapseExpandSuccess(false);
+                },
+                scope: this
+            });
+        },
+
+        _saveState: function () {
+            if (this.stateful) {
+                Ext.state.Manager.set(this.stateId, { expanded: this.columnExpanded });
+            }
+        },
+
+        _calculateColumnWidth: function() {
+            if (!this.columnExpanded) {
+                return this.self.COLLAPSED_WIDTH;
+            } else {
+                var visibleColumns = this.cardboard.getVisibleColumns();
+                var expandedCount = this._numberOfExpandedColumns(visibleColumns);
+                var collapsedCount = visibleColumns.length - expandedCount;
+
+                _.each(visibleColumns, function (column) {
+                    if (column !== this.column && this._isColumnExpanded(column)) {
+                        column.getColumnHeaderCell().setWidth('auto');
+                    }
+                }, this);
+
+                return (this.cardboard.getWidth() - collapsedCount * this.self.COLLAPSED_WIDTH) / expandedCount;
+            }
+        },
+
+        _numberOfExpandedColumns: function(columns) {
+            return _.filter(columns, function (column) { return this._isColumnExpanded(column); }, this).length;
+        },
+
+        _isColumnExpanded: function(column) {
+            var collapsiblePlugin = column.findPlugin(this.ptype);
+            return collapsiblePlugin ? collapsiblePlugin.columnExpanded : true;
+        },
+
+        _resizeColumn: function (immediate) {
+            var width = this._calculateColumnWidth();
+
+            var animPromises = [];
+
+            if (immediate) {
+                var deferred = Ext.create('Deft.Deferred');
+                animPromises.push(deferred.promise);
+                Ext.defer(function() {
+                    deferred.resolve();
+                }, 1);
+
+                var els = _.compact(this.column.getContentCellContainers().concat([
+                    this.column.getColumnHeaderCell(),
+                    this.sizingCell
+                ]));
+                _.invoke(els, 'setWidth', this.columnExpanded ? 'auto' : width);
+            } else {
+                this._animating = true;
+                animPromises.push(this._animateResize(this.column.getColumnHeaderCell(), width));
+                _.each(this.column.getContentCellContainers(), function(cell) {
+                    animPromises.push(this._animateResize(cell, width));
+                }, this);
+                if(this.sizingCell) {
+                    animPromises.push(this._animateResize(this.sizingCell, width));
+                }
+                if (!this.columnExpanded) {
+                    animPromises.push(this._animate(this.collapsedTitle, {
+                        from: { top: '-200px', opacity: 0 },
+                        to: { top: '-14px', opacity: 1 }
+                    }));
+                }
+            }
+
+            return Deft.Promise.all(animPromises).always(function () {
+                delete this._animating;
+            }, this);
+        },
+
+        _isLastExpandedColumn: function () {
+            return this.columnExpanded && this._numberOfExpandedColumns(this.cardboard.getVisibleColumns()) === 1;
+        },
+
+        _animate: function (cell, options) {
+            var deferred = Ext.create('Deft.Deferred');
+            cell.animate(Ext.merge({
+                duration: 500,
+                listeners: {
+                    afteranimate: function () { deferred.resolve(); },
+                    scope: this
+                }
+            }, options));
+            return deferred.promise;
+        },
+
+        _animateResize: function(cell, width) {
+            return this._animate(cell, {
+                to: { width: width + 'px' }
+            }).then({
+                success: function () {
+                    if (this.columnExpanded) {
+                        cell.setWidth('auto');
+                    }
+                },
+                scope: this
+            });
+        },
+
+        _onPolicyChange: function() {
+            this._resizeColumn(true);
+        }
+    });
+})();
             
                Rally.launchApp('team-dependency-board', {
                    name: 'Team Dependency Board'
