@@ -21,6 +21,8 @@ Ext.define("team-dependency-board", {
      _initApp: function(){
         this.cbRelease= this.down('#criteria_box').add({
             xtype: 'rallyreleasecombobox',
+            stateful: true,
+            stateId: this.getContext().getScopedStateId('cb-release'),
             listeners: {
                 scope: this,
                 select: this._releaseSelected,
@@ -57,6 +59,16 @@ Ext.define("team-dependency-board", {
                 }
             },
             {
+                dataIndex: 'PlanEstimate',
+                cls: 'cardLowerRight',
+                renderer: function(value,meta_data,record){
+                    if (value){
+                        return Ext.String.format('({0})',value);
+                    }
+                    return '(--)';
+                }
+            },
+            {
                 dataIndex: 'Project',
                 cls: 'cardLowerLeft',
                 renderer: function(value,meta_data,record){
@@ -85,6 +97,18 @@ Ext.define("team-dependency-board", {
                 dataIndex: 'Name',
                 maxLength: 100,
                 cls: 'cardTitle'
+
+            },{
+                dataIndex: 'Feature',
+                cls: 'cardSubtitle',
+                renderer: function(value,meta_data,record){
+                    var feature = 'No Feature';
+                    if (record.get('Feature')){
+                        feature = Ext.String.format('Feature {0}: {1}',record.get('Feature').FormattedID, record.get('Feature').Name);
+                    }
+                    return feature;
+
+                }
             }];
 
         var win = Ext.create('Rally.technicalservices.window.PrintCards',{
@@ -99,7 +123,7 @@ Ext.define("team-dependency-board", {
         var releaseName = this.cbRelease.getRecord().get(this.cbRelease.displayField);
 
         Ext.create('Rally.data.wsapi.Store',{
-            fetch: ['FormattedID','Iteration','Project','Name','Tags'],
+            fetch: ['FormattedID','Iteration','Project','Name','Tags','PlanEstimate','Feature'],
             model: 'HierarchicalRequirement',
             filters:  [{
                 property: 'Release.Name',
@@ -155,7 +179,7 @@ Ext.define("team-dependency-board", {
                 field: 'Project'
             },
             cardConfig: {
-                fields: ['Name','Feature','Tags'],
+                fields: ['Name','Feature','Tags','PlanEstimate'],
                 showPlusIcon: false,
                 showRankMenuItems: false,
                 showSplitMenuItem: false,
