@@ -3,11 +3,11 @@
 <head>
     <title>Team Dependency Board</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Wed Apr 08 2015 12:00:56 GMT-0700 (PDT) -->
+    <!--  Build Date: Wed Apr 08 2015 12:17:43 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Wed Apr 08 2015 12:00:56 GMT-0700 (PDT)";
-        var CHECKSUM = 17795245554;
+        var APP_BUILD_DATE = "Wed Apr 08 2015 12:17:43 GMT-0700 (PDT)";
+        var CHECKSUM = 18510397678;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -166,9 +166,12 @@ Ext.override(Rally.ui.cardboard.CardBoard,{
 
         var start_date = this.selectedRelease.get('ReleaseStartDate');
         var end_date = this.selectedRelease.get('ReleaseDate');
+
         var filters = [{property:'StartDate',operator:'<',value: end_date}];
         filters.push({property: 'EndDate', operator: '>', value: start_date});
-
+        if (this.iterationNameFilter){
+            filters.push({property: 'Name', operator: 'contains', value: this.iterationNameFilter});
+        }
         var iteration_names = [];
 
         Ext.create('Rally.data.WsapiDataStore',{
@@ -690,6 +693,16 @@ Ext.define("team-dependency-board", {
         var releaseName = cb.getRecord().get(cb.displayField);
         this._updateCardboard(releaseName);
     },
+    _getIterationNameFilter: function(releaseName){
+        var iterationNameFilter = null;
+        if (releaseName){
+            var match = /Release ([\d]*)/.exec(releaseName);
+            if (match && match.length > 1){
+                return 'R' + match[1];
+            }
+        }
+        return iterationNameFilter;
+    },
     _updateCardboard: function(releaseName){
         this.logger.log('_updateCardboard for release ', releaseName);
 
@@ -703,6 +716,7 @@ Ext.define("team-dependency-board", {
             attribute: 'Iteration',
             context: this.getContext(),
             selectedRelease: this.cbRelease.getRecord(),
+            iterationNameFilter: this._getIterationNameFilter(releaseName),
             enableRanking: false,
             enableCrossColumnRanking: false,
             columnConfig: {
