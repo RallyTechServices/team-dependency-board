@@ -25,7 +25,9 @@ Ext.override(Rally.ui.cardboard.CardBoard,{
         var me = this;
 
         var start_date = this.selectedRelease.get('ReleaseStartDate');
-        var filters = [{property:'StartDate',operator:'>=',value:start_date}];
+        var end_date = this.selectedRelease.get('ReleaseDate');
+        var filters = [{property:'StartDate',operator:'<',value: end_date}];
+        filters.push({property: 'EndDate', operator: '>', value: start_date});
 
         var iteration_names = [];
 
@@ -57,7 +59,9 @@ Ext.override(Rally.ui.cardboard.CardBoard,{
                             }
                         });
                     });
-                    this._getAllIterations(retrievedColumns,iteration_names);
+                    _.map(retrievedColumns,this.addColumn,this);
+                    this._renderColumns();
+                    //this._getAllIterations(retrievedColumns,iteration_names);
                 },
                 scope: this
             }
@@ -82,6 +86,7 @@ Ext.override(Rally.ui.cardboard.CardBoard,{
             fetch: ['Name','Project','PlannedVelocity','Children','Parent', 'ObjectID'],
             listeners: {
                 load: function(store,records) {
+                    console.log('_getAllIterations',records);
                     var current_project = null;
                     if ( this.context ) {
                         current_project = this.context.getProject();
