@@ -1,69 +1,22 @@
-#Team Dependency Board
+#Team Dependency Board  (In progress)
+SDK:  2.0
+Uses LBAPI:  No
 
-## Development Notes
+Team Dependency Board is a tool intended to be used during release planning to help facilitate communication
+of story dependencies between teams that may not be doing planning at the same time.
 
-### First Load
+The team creating a story that they are dependent on is known as the issuing team, or "Issuer".  The team that the dependency is for is known as the "Receiver".
 
-If you've just downloaded this from github and you want to do development, 
-you're going to need to have these installed:
+The process for the teams to follow when creating a story that is a dependency is as follows.   The issuing team is responsible for doing the following when creating the story:
 
- * node.js
- * grunt-cli
- * grunt-init
- 
-Since you're getting this from github, we assume you have the command line
-version of git also installed.  If not, go get git.
+* Marks the story with a tag with the text "Dependency".
+* Marks the story with a tag in the following format:  "Issuer: (team name)"
+* Put the story into the desired sprint in the receiving team's project
 
-If you have those three installed, just type this in the root directory here
-to get set up to develop:
+Only tags with the text "Dependency"  will show up in the board.
+Only Iterations that overlap with the selected release will be shown on the board.
+Only stories that are explicitly associated with the selected release (by Name) will be displayed.
+It is assumed that iterations with the same name have the same start and end dates.
 
-  npm install
-
-### Structure
-
-  * src/javascript:  All the JS files saved here will be compiled into the 
-  target html file
-  * src/style: All of the stylesheets saved here will be compiled into the 
-  target html file
-  * test/fast: Fast jasmine tests go here.  There should also be a helper 
-  file that is loaded first for creating mocks and doing other shortcuts
-  (fastHelper.js) **Tests should be in a file named <something>-spec.js**
-  * test/slow: Slow jasmine tests go here.  There should also be a helper
-  file that is loaded first for creating mocks and doing other shortcuts 
-  (slowHelper.js) **Tests should be in a file named <something>-spec.js**
-  * templates: This is where templates that are used to create the production
-  and debug html files live.  The advantage of using these templates is that
-  you can configure the behavior of the html around the JS.
-  * config.json: This file contains the configuration settings necessary to
-  create the debug and production html files.  Server is only used for debug,
-  name, className and sdk are used for both.
-  * package.json: This file lists the dependencies for grunt
-  * auth.json: This file should NOT be checked in.  Create this to run the
-  slow test specs.  It should look like:
-    {
-        "username":"you@company.com",
-        "password":"secret"
-    }
-  
-### Usage of the grunt file
-####Tasks
-    
-##### grunt debug
-
-Use grunt debug to create the debug html file.  You only need to run this when you have added new files to
-the src directories.
-
-##### grunt build
-
-Use grunt build to create the production html file.  We still have to copy the html file to a panel to test.
-
-##### grunt test-fast
-
-Use grunt test-fast to run the Jasmine tests in the fast directory.  Typically, the tests in the fast 
-directory are more pure unit tests and do not need to connect to Rally.
-
-##### grunt test-slow
-
-Use grunt test-slow to run the Jasmine tests in the slow directory.  Typically, the tests in the slow
-directory are more like integration tests in that they require connecting to Rally and interacting with
-data.
+The "Ready" flag will be used to show that a story has been accepted by the receiving team.  If a story is not ready and the story has no displayColor associated with it,  it's card will render with a Red border.
+ If there is a display color associated with the story, that will override the red border when the card renders.
