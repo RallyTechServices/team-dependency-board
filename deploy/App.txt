@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Team Dependency Board</title>
+    <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
+    <!--  Build Date: Tue Apr 07 2015 20:12:46 GMT-0700 (PDT) -->
+    
+    <script type="text/javascript">
+        var APP_BUILD_DATE = "Tue Apr 07 2015 20:12:46 GMT-0700 (PDT)";
+        var CHECKSUM = 44299739730;
+    </script>
+    
+    <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
+
+    <script type="text/javascript">
+        Rally.onReady(function() {
+             
+/**
+ * A link that pops up a version dialog box
+ */
+
+Ext.define('Rally.technicalservices.InfoLink',{
+    extend: 'Ext.Component',
+    alias: 'widget.tsinfolink',
+    
+    /**
+     * @cfg {String} informationHtml
+     * Additional text to be displayed on the popup dialog (for exmaple,
+     * to add a description of the app's use or functionality)
+     */
+    informationHtml: null,
+    
+    /**
+     * 
+     * cfg {String} title
+     * The title for the dialog box
+     */
+     title: "Build Information",
+    
+    renderTpl: "<div id='{id}-infolinkWrap' class='tsinfolink'>i</div>",
+
+    initComponent: function() {
+        this.callParent(arguments);
+       
+    },
+    
+    onRender: function() {
+        this.callParent(arguments);
+        this.mon(this.el,'click',this.onClick,this);
+    },
+    _generateChecksum: function(string){
+        var chk = 0x12345678,
+            i;
+        string = string.replace(/var CHECKSUM = .*;/,"");
+        string = string.replace(/\s/g,"");  //Remove all whitespace from the string.
+        
+        for (i = 0; i < string.length; i++) {
+            chk += (string.charCodeAt(i) * i);
+        }
+    
+        return chk;
+    },
+    _checkChecksum: function(container) {
+        var me = this;
+        Ext.Ajax.request({
+            url: document.URL,
+            params: {
+                id: 1
+            },
+            success: function (response) {
+                text = response.responseText;
+                if ( CHECKSUM ) {
+                    if ( CHECKSUM !== me._generateChecksum(text) ) {
+                        console.log("Checksums don't match!");
+                        if ( me.dialog ) {
+                            me.dialog.add({xtype:'container',html:'Checksums do not match'});
+                        }
+                    }
+                }
+            }
+        });
+    },
+    onClick: function(e) {
+        var me = this;
+        this._checkChecksum(this);
+        
+        var dialog_items = [];
+        
+        if ( this.informationHtml ) {
+            dialog_items.push({
+                xtype:'container',
+                html: this.informationHtml
+            });
+        }
+                
+        dialog_items.push({
+            xtype:'container',
+            html:"This app was created by the Rally Technical Services Team."
+        });
+        
+        if ( APP_BUILD_DATE ) {
+            dialog_items.push({
+                xtype:'container',
+                html:'Build date/time: ' + APP_BUILD_DATE
+            });
+        }
+        
+        if (this.dialog){this.dialog.destroy();}
+        this.dialog = Ext.create('Rally.ui.dialog.Dialog',{
+            defaults: { padding: 5, margin: 5 },
+            closable: true,
+            draggable: true,
+            title: me.title,
+            items: dialog_items
+        });
+        this.dialog.show();
+    }
+});
+
+/*
+ */
+Ext.define('Rally.technicalservices.Logger',{
+    constructor: function(config){
+        Ext.apply(this,config);
+    },
+    log: function(args){
+        var timestamp = "[ " + Ext.util.Format.date(new Date(), "Y-m-d H:i:s.u") + " ]";
+        //var output_args = arguments;
+        //output_args.unshift( [ "[ " + timestamp + " ]" ] );
+        //output_args = Ext.Array.push(output_args,arguments);
+        
+        var output_args = [];
+        output_args = Ext.Array.push(output_args,[timestamp]);
+        output_args = Ext.Array.push(output_args, Ext.Array.slice(arguments,0));
+
+        window.console && console.log.apply(console,output_args);
+    }
+
+});
+
+Ext.define('Rally.ui.cardboard.plugin.CardIcons', {
+    alias: 'plugin.rallycardicons',
+    extend: 'Ext.AbstractPlugin',
+    requires: [
+        'Rally.data.util.Record',
+        'Rally.ui.menu.DefaultRecordMenu',
+        'Rally.util.Test'
+    ],
+
+    mixins: {
+        messageagble: 'Rally.Messageable'
+    },
+
+    clientMetrics: [{
+        method: '_onBlockedIconClick',
+        description: 'blocked icon clicked'
+    },{
+        method: '_onReadyIconClick',
+        description: 'ready icon clicked'
+    }],
+
+    inheritableStatics: {
+        getTpl: function() {
+            if (!this.tpl) {
+                this.tpl = Ext.create('Ext.XTemplate', [
+                    '<tpl if="hasIcons">',
+                    '<div class="rally-card-icons-ct">',
+                    '<tpl if="(hasReadyField && isReady) || (hasBlockedField && isBlocked)">',
+                    '<div class="rally-card-icons indicator">',
+                    '<tpl if="(hasBlockedField && isBlocked)">',
+                    '<div class="indicator-icon icon-blocked"></div>',
+                    '<tpl else>',
+                    '<div class="indicator-icon icon-ready"></div>',
+                    '</tpl>',
+                    '<tpl else>',
+                    '<div class="rally-card-icons" style="visibility: hidden;">',
+                    '</tpl>',
+                    '<tpl if="showPlusIcon"><div class="rally-card-icon card-plus-icon icon-add" title="New..." role="img"></div></tpl>',
+                    '<tpl if="showGearIcon"><div class="rally-card-icon card-gear-icon icon-gear" title="Actions..." role="img"></div></tpl>',
+                    '<tpl if="hasReadyField"><div class="rally-card-icon card-ready-icon<tpl if="isReady"> rly-active</tpl> icon-ok" role="img"></div></tpl>',
+                    '<tpl if="hasBlockedField"><div class="rally-card-icon card-blocked-icon<tpl if="isBlocked"> rly-active</tpl> icon-blocked" role="img"></div></tpl>',
+                    '<tpl if="showColorIcon"><div class="rally-card-icon card-color-icon icon-color" title="Card Color" role="img"></div></tpl>',
+                    '</div>',
+                    '</div>',
+                    '</tpl>'
+                ]);
+            }
+            return this.tpl;
+        }
+    },
+
+    config: {
+
+        /**
+         * @cfg {Boolean}
+         * set to false to not show the plus icon button
+         */
+        showPlusIcon: true,
+
+        /**
+         * @cfg {Boolean}
+         * set to false to not show the gear icon
+         */
+        showGearIcon: true,
+
+        /**
+         * @cfg {Boolean}
+         * set to false to not show the color icon
+         */
+        showColorIcon: false,
+
+        /**
+         * @cfg {Boolean}
+         * set to false to not show the ready icon
+         */
+        showReadyIcon: true,
+
+        /**
+         * @cfg {Boolean}
+         * set to false to not show the blocked icon
+         */
+        showBlockedIcon: true,
+
+        /**
+         * Configuration for the gear menu. See config for Rally.ui.cardboard.CardGearMenu
+         */
+        gearMenuConfig: {
+
+            /**
+             * @cfg {Boolean}
+             * set to false to not show the edit menu item in the gear menu
+             */
+            showEditMenuItem: true,
+
+            /**
+             * @cfg {Boolean}
+             * set to false to not show the copy menu item in the gear menu
+             */
+            showCopyMenuItem: true,
+
+            /* @cfg {Boolean}
+             * true to show the add child menu item under the gear
+             */
+            showAddChildMenuItem: true,
+
+            /*
+             * @cfg {Boolean}
+             * true to show the rank menu items under the gear
+             */
+            showRankMenuItems: true,
+
+            /**
+             * @cfg {Boolean}
+             * set to false to not show the split menu item in the gear menu
+             */
+            showSplitMenuItem: true,
+
+            /**
+             * @cfg {Boolean}
+             * set to false to not show the delete menu item in the gear menu
+             */
+            showDeleteMenuItem: true
+        }
+    },
+
+    init: function(card) {
+        this.callParent(arguments);
+        this.card = card;
+        card.iconsPlugin = this;
+
+        this.card.on('ready', this._onReady, this);
+    },
+
+    destroy: function() {
+        if (this.card) {
+            this.detachListeners();
+
+            delete this.card.iconsPlugin;
+            delete this.card;
+        }
+
+        if (this.plusIconEl) {
+            Ext.EventManager.removeAll(this.plusIconEl);
+            delete this.plusIconEl;
+        }
+
+        this.callParent(arguments);
+    },
+
+    detachListeners: function() {
+        if (this.card) {
+            var cardEl = this.card.getEl(),
+                el = cardEl && cardEl.down('.rally-card-icons');
+            if (el) {
+                var readyIconEl = el.down('.card-ready-icon'),
+                    blockedIconEl = el.down('.card-blocked-icon');
+
+                if (readyIconEl) {
+                    readyIconEl.un('click', this._onReadyIconClick, this);
+                }
+                if (blockedIconEl) {
+                    blockedIconEl.un('click', this._onBlockedIconClick, this);
+                }
+            }
+        }
+    },
+
+    getHtml: function() {
+        var record = this.card.getRecord(),
+            hasReady = this.showReadyIcon && this._isIconActiveFor('Ready'),
+            hasBlocked = this.showBlockedIcon && this._isIconActiveFor('Blocked'),
+            hasIcons = hasReady || hasBlocked || this.showColorIcon || this.showGearIcon || this.showPlusIcon;
+
+        if (!hasIcons) {
+            return '';
+        }
+        this.card.on('afterrender', this._onAfterCardRender, this);
+        this.card.on('rerender', this._onAfterCardRender, this);
+        this.card.on('show', this._fixStyles, this);
+
+        return this.self.getTpl().apply({
+            hasReadyField: hasReady,
+            hasBlockedField: hasBlocked,
+            hasIcons: hasIcons,
+            showPlusIcon: this.showPlusIcon && this._getPlusMenuItems().length > 0,
+            isBlocked: hasBlocked && !!record.get('Blocked'),
+            isReady: hasReady && !!record.get('Ready'),
+            showGearIcon: this.showGearIcon,
+            showColorIcon: this.showColorIcon,
+            formattedId: record.get('FormattedID'),
+            name: record.get('Name')
+        });
+    },
+
+    _isIconActiveFor: function(fieldName) {
+        var record = this.card.getRecord(),
+            active = record.isFieldVisible(fieldName);
+        if (active && fieldName === 'Blocked') {
+            active = !record.isCustomField('Blocked');
+        }
+
+        return active;
+    },
+
+    _toggleState: function(fieldName) {
+        var record = this.card.getRecord(),
+            newValue = !record.get(fieldName),
+            otherStateFieldName = (fieldName === 'Blocked')? 'Ready' : 'Blocked';
+
+        record.set(fieldName, newValue);
+
+        if (newValue && this._isIconActiveFor(otherStateFieldName) && record.getField(otherStateFieldName)) {
+            record.set(otherStateFieldName, false);
+        }
+
+        record.save();
+    },
+    _onToggleStateSuccess:function (record) {
+        this.card.fireEvent('statechange');
+        this.publish(Rally.Message.objectUpdate, record, ['Ready', 'Blocked'], this.card);
+    },
+    _onToggleStateFailure:function (record, operation) {
+        record.reject();
+        Rally.data.util.Record.showWsapiErrorNotification(this.card.getRecord(), operation);
+    },
+    _onReadyIconClick: function(e) {
+        this._setAcknowledged(true);
+        //this._toggleState('Ready');
+    },
+    _setAcknowledged: function(isAcknowledged){
+        var record = this.card.getRecord();
+        var color = isAcknowledged ? this.card.acknowledgedColor : null;
+
+        record.set('DisplayColor', color);
+
+
+
+        record.save({
+            success:this._onToggleStateSuccess,
+            failure:this._onToggleStateFailure,
+            scope: this
+        });
+    },
+
+    _onBlockedIconClick: function(e) {
+        this._toggleState('Blocked');
+    },
+
+    _onReady: function() {
+        var card = this.card;
+        this._fixStyles();
+        card.getEl().hover(this._onCardMouseOver, this._onCardMouseOut, this);
+    },
+
+    _onAfterCardRender: function() {
+        var card = this.card,
+            cardEl = card.getEl(),
+            el = cardEl.down('.rally-card-icons'),
+            iconEls = el.query('.rally-card-icon'),
+            readyIconEl = el.down('.card-ready-icon'),
+            blockedIconEl = el.down('.card-blocked-icon');
+        this.plusIconEl = el.down('.card-plus-icon');
+        this.gearIconEl = el.down('.card-gear-icon');
+        this.colorIconEl = el.down('.card-color-icon');
+
+        if (iconEls.length) {
+            Ext.fly(iconEls[0]).addCls('rly-left');
+            Ext.fly(iconEls[iconEls.length-1]).addCls('rly-right');
+        }
+
+        if (readyIconEl) {
+            readyIconEl.on('click', this._onReadyIconClick, this);
+            this._setReadyIconTooltip(readyIconEl);
+        }
+        if (blockedIconEl) {
+            blockedIconEl.on('click', this._onBlockedIconClick, this);
+            this._setBlockedIconTooltip(blockedIconEl);
+        }
+        if (this.plusIconEl) {
+            this.plusIconEl.on('click', this._onPlusTriggerClick, this);
+        }
+
+        if (this.gearIconEl) {
+            this.gearIconEl.on('click', this._onGearTriggerClick, this);
+        }
+
+        if (this.colorIconEl) {
+            this.colorIconEl.on('click', this._onColorTriggerClick, this);
+        }
+
+        this._fixStyles();
+    },
+
+    _setReadyIconTooltip: function(readyIconEl) {
+        var iconEl = readyIconEl || this.card.getEl().down('.card-ready-icon');
+        if (iconEl) {
+            var record = this.card.getRecord(),
+                color = record.get('DisplayColor'),
+                text = color === this.card.acknowledgedColor ? 'Mark as Not Acknowledged' : 'Mark as Acknowledged';
+
+            iconEl.set({
+                'title': text,
+                'aria-label': text + ' ' + record.get('FormattedID') + ': ' + record.get('Name')
+            });
+        }
+    },
+
+    _setBlockedIconTooltip: function(blockedIconEl) {
+        var iconEl = blockedIconEl || this.card.getEl().down('.card-blocked-icon');
+        if (iconEl) {
+            var record = this.card.getRecord(),
+                text = record.get('Blocked') ? 'Unblock' : 'Block';
+
+            iconEl.set({
+                'title': text,
+                'aria-label': text + ' ' + record.get('FormattedID') + ': ' + record.get('Name')
+            });
+        }
+    },
+
+    _onCardMouseOver: function() {
+        var dragGhost = Ext.DomQuery.selectNode('.' + Ext.baseCSSPrefix + 'dd-drag-proxy.cardboard');
+        if (dragGhost && Ext.fly(dragGhost).isVisible()) {
+            return;
+        }
+        if (this.card.getEl().isMasked()) {
+            return;
+        }
+        this._removeIndicator();
+        this._setIconsVisibility(true);
+        delete this.shouldHideIconBar;
+    },
+
+    _onCardMouseOut: function() {
+        if(!this.menu && !this.colorPopoverPlugin){
+            this._setIconsVisibility(false);
+            this._setIndicator();
+        } else {
+            this.shouldHideIconBar = true;
+        }
+    },
+
+    _setIconsVisibility: function(visible) {
+        if(this.card && this.card.getEl()){
+            var targetEl = Ext.get(this.card.getEl().down('.rally-card-icons'));
+            targetEl.setVisibilityMode(Ext.dom.Element.VISIBILITY);
+            targetEl.setVisible(visible);
+            if (visible) {
+                targetEl.setStyle('opacity', 1);
+            }
+        }
+    },
+
+    _onPlusTriggerClick: function(e) {
+        var menu = this._getPlusMenu();
+        menu.showBy(e.target, 'tl-bl', [1, 0]);
+    },
+
+    _onGearTriggerClick: function(e) {
+        var menu = this._getGearMenu();
+        menu.showBy(e.target, 'tl-bl', [0, 0]);
+    },
+
+    _onColorTriggerClick: function(e) {
+        this.colorPopoverPlugin = this.card.popoverPlugin;
+        if(this.colorPopoverPlugin) {
+            this.colorPopoverPlugin.showColor({
+                target: Ext.get(e.target),
+                listeners: {
+                    destroy: function(){
+                        this._setIconsVisibility(false);
+                        if (this.colorPopoverPlugin) {
+                            delete this.colorPopoverPlugin;
+                        }
+                    },
+                    afterrender: function() {
+                        this._setIconsVisibility(true);
+                    },
+                    scope: this
+                }
+            });
+        }
+    },
+
+    _getPlusMenu: function() {
+        if (!this.menu) {
+            this.menu = Ext.widget('rallyrecordmenu', {
+                cls: Rally.util.Test.toBrowserTestCssClass('card-plus-menu-' + this.card.getRecord().get('ObjectID')) + ' card-plus-menu',
+                items: this._getPlusMenuItems(),
+                listeners: {
+                    destroy: this._destroyMenu,
+                    scope: this
+                }
+            });
+        }
+        return this.menu;
+    },
+
+    _destroyMenu: function(menu, eOpts) {
+        if (this.menu){
+            delete this.menu;
+            if (this.shouldHideIconBar) {
+                this._setIconsVisibility(false);
+            }
+        }
+    },
+
+    _getPlusMenuItems: function() {
+        var cardRecord = this.card.getRecord(),
+            items = [],
+            hasTasksField = cardRecord.getField('Tasks'),
+            hasDefectsField = cardRecord.getField('Defects'),
+            hasTestCasesField = cardRecord.getField('TestCases'),
+            hasDiscussionsField = cardRecord.getField('Discussion');
+
+        if (hasTasksField){
+            items.push({
+                text:'Tasks',
+                cls: 'artifact-icon icon-task',
+                record: cardRecord,
+                handler: this._onTasksClick,
+                scope: this
+            });
+        }
+
+        if (hasDefectsField) {
+            items.push({
+                text:'Defects',
+                cls: 'artifact-icon icon-defect',
+                record: cardRecord,
+                handler: this._onDefectsClick,
+                scope: this
+            });
+        }
+
+        if (hasTestCasesField) {
+            items.push({
+                text: 'Test Cases',
+                cls: 'artifact-icon icon-test-case',
+                record: cardRecord,
+                handler: this._onTestCasesClick,
+                scope: this
+            });
+        }
+
+        if(hasDiscussionsField){
+            items.push({
+                text:'Discussion',
+                cls: 'artifact-icon icon-comment',
+                record: cardRecord,
+                handler: this._onDiscussionClick,
+                scope: this
+            });
+        }
+
+        return items;
+    },
+
+    _onTasksClick:function () {
+        var popoverPlugin = this.card.popoverPlugin;
+        if (popoverPlugin) {
+            popoverPlugin.showTasks();
+        }
+    },
+
+    _onDefectsClick:function () {
+        var popoverPlugin = this.card.popoverPlugin;
+        if (popoverPlugin) {
+            popoverPlugin.showDefects();
+        }
+    },
+
+    _onDiscussionClick:function () {
+        var popoverPlugin = this.card.popoverPlugin;
+        if (popoverPlugin) {
+            popoverPlugin.showDiscussion();
+        }
+    },
+
+    _onTestCasesClick: function(){
+        var popoverPlugin = this.card.popoverPlugin;
+        if (popoverPlugin){
+            popoverPlugin.showTestCases();
+        }
+    },
+
+    _getGearMenu: function() {
+        if (!this.menu) {
+            this.menu = Ext.widget('rallydefaultrecordmenu', Ext.apply({
+                record: this.card.getRecord(),
+                cls: Rally.util.Test.toBrowserTestCssClass('card-gear-menu-' + this.card.getRecord().getId()) + ' card-gear-menu',
+                showAddTasks: false,
+                showAddDefects: false,
+                showAddTestCases: false,
+                onBeforeRecordMenuCopy: Ext.bind(function() {
+                    this.card.setLoading(true);
+                }, this),
+                onRecordMenuCopy: Ext.bind(function(record, originalRecord, operation) {
+                    this.card.setLoading(false);
+                    if (operation.wasSuccessful()) {
+                        this.card.fireEvent('cardcopied', this.card, record);
+                    } else {
+                        if (Rally.data.util.Record.isObjectDoesNotExistWsapiError(operation)) {
+                            this.card.destroy();
+                        }
+                    }
+                }, this),
+                onBeforeRecordMenuDelete: Ext.bind(function() {
+                    this.card.setLoading(true);
+                }, this),
+                rankRecordHelper: this.card.rankRecordHelper,
+                listeners: {
+                    destroy: this._destroyMenu,
+                    scope: this
+                }
+            }, this.getGearMenuConfig()));
+        }
+        return this.menu;
+    },
+
+    _setIndicator: function(){
+        if(this._isCardBlockedOrReady()){
+            this.card.getEl().down('.rally-card-icons').addCls('indicator');
+            this._setIconsVisibility(true);
+        }
+    },
+
+    _removeIndicator: function() {
+        if(this._isCardBlockedOrReady()){
+            this.card.getEl().down('.rally-card-icons').removeCls('indicator');
+        }
+    },
+
+    _isCardBlockedOrReady: function() {
+        return this.card.shouldShowBlockedBorder() || this.card.shouldShowReadyBorder();
+    },
+
+    _fixStyles: function(){
+        // needed in IE9 standards to make hover icons work
+        if(Ext.isIE9){
+            this._setIndicator();
+        }
+    }
+});
+
+Ext.override(Rally.ui.cardboard.CardBoard,{
+
+    _buildColumnsFromModel: function() {
+        var me = this;
+        var model = this.models[0];
+        if (model) {
+            if ( this.attribute === "Iteration" ) {
+                var retrievedColumns = [];
+                retrievedColumns.push({
+
+                    value: null,
+                    columnHeaderConfig: {
+                        headerTpl: "{name}",
+                        headerData: {
+                            name: "Unscheduled"
+                        }
+                    }
+                });
+
+                this._getLocalIterations(retrievedColumns);
+            }
+        }
+    },
+    _getLocalIterations: function(retrievedColumns) {
+        var me = this;
+
+        var start_date = this.selectedRelease.get('ReleaseStartDate');
+        var filters = [{property:'StartDate',operator:'>=',value:start_date}];
+
+        var iteration_names = [];
+
+        Ext.create('Rally.data.WsapiDataStore',{
+            model:me.attribute,
+            autoLoad: true,
+            filters: filters,
+            context: { projectScopeUp: false, projectScopeDown: false },
+            sorters: [
+                {
+                    property: 'EndDate',
+                    direction: 'ASC'
+                }
+            ],
+            fetch: ['Name','EndDate','StartDate','PlannedVelocity'],
+            listeners: {
+                load: function(store,records) {
+                    Ext.Array.each(records, function(record){
+                        iteration_names.push(record.get('Name'));
+
+                        retrievedColumns.push({
+                            value: record,
+
+                            columnHeaderConfig: {
+                                headerTpl: "{name}",
+                                headerData: {
+                                    name: record.get('Name')
+                                }
+                            }
+                        });
+                    });
+                    this._getAllIterations(retrievedColumns,iteration_names);
+                },
+                scope: this
+            }
+        });
+    },
+    _getAllIterations: function(retrievedColumns,iteration_names) {
+        var me = this;
+
+        var today_iso = Rally.util.DateTime.toIsoString(new Date(),false);
+        var filters = [{property:'EndDate',operator:'>',value:today_iso}];
+
+        Ext.create('Rally.data.WsapiDataStore',{
+            model:me.attribute,
+            autoLoad: true,
+            filters: filters,
+            sorters: [
+                {
+                    property: 'EndDate',
+                    direction: 'ASC'
+                }
+            ],
+            fetch: ['Name','Project','PlannedVelocity','Children','Parent', 'ObjectID'],
+            listeners: {
+                load: function(store,records) {
+                    var current_project = null;
+                    if ( this.context ) {
+                        current_project = this.context.getProject();
+                    }
+                    this.fireEvent('columnsretrieved',this,retrievedColumns);
+                    this.columnDefinitions = [];
+                    _.map(retrievedColumns,this.addColumn,this);
+                    this._renderColumns();
+                },
+                scope: this
+            }
+        });
+    }
+});
+
+Ext.override(Rally.ui.cardboard.Column,{
+    getStoreFilter: function(model) {
+        var property = this.attribute;
+        var value = this.getValue();
+        if ( this.attribute == "Iteration" ) {
+            property = "Iteration.Name";
+            if ( value ) {
+                value = value.get('Name');
+            }
+        }
+        return {
+            property:property,
+            operator: '=',
+            value: value
+        };
+    },
+    isMatchingRecord: function(record) {
+        var recordValue = record.get(this.attribute);
+        if (recordValue) {
+            recordValue = recordValue.Name;
+        }
+        var columnValue = this.getValue();
+        if ( columnValue ) {
+            columnValue = columnValue.get('Name');
+        }
+
+        return (columnValue === recordValue );
+    },
+    addCard: function(card, index, highlight) {
+        var record = card.getRecord();
+        var target_value = this.getValue();
+
+        if ( target_value && typeof(target_value.get) === "function" ) {
+            target_value = this.getValue().get('_ref');
+        }
+
+        record.set(this.attribute,target_value);
+
+        if (!Ext.isNumber(index)) {
+            //find where it should go
+            var records = Ext.clone(this.getRecords());
+            records.push(record);
+            this._sortRecords(records);
+
+            var recordIndex = 0;
+            for (var iIndex = 0, l = records.length; iIndex < l; iIndex++) {
+                var i = records[iIndex];
+                if (i.get("ObjectID") === record.get("ObjectID")) {
+                    recordIndex = iIndex;
+                    break;
+                }
+            }
+            index = recordIndex;
+        }
+
+        this._renderCard(card, index);
+
+        if (highlight) {
+            card.highlight();
+        }
+
+        this.fireEvent('addcard');
+        card.fireEvent('ready', card);
+    },
+    _sortRecords: function(records) {
+        var sortProperty = this._getSortProperty(),
+            sortAscending = true,   //this._getSortDirection() === 'ASC',
+            valA, valB;
+
+        // force to new rank style
+        sortProperty = "DragAndDropRank";
+
+        records.sort(function(a, b) {
+            valA = a.get(sortProperty);
+            if (valA && valA._refObjectName) {
+                valA = valA._refObjectName;
+            }
+            valB = b.get(sortProperty);
+            if (valB && valB._refObjectName) {
+                valB = valB._refObjectName;
+            }
+
+            if (valA === valB) {
+                return 0;
+            }
+
+            if (valA !== null && valA !== undefined) {
+                if (valB === null || valB === undefined) {
+                    return sortAscending ? -1 : 1;
+                } else {
+                    return valA > valB ? (sortAscending ? 1 : -1) : (sortAscending ? -1 : 1);
+                }
+            } else if (valB !== null && valB !== undefined) {
+                if (valA === null || valA === undefined) {
+                    return sortAscending ? 1 : -1;
+                } else {
+                    return valB > valA ? (sortAscending ? -1 : 1) : (sortAscending ? 1 : -1);
+                }
+            }
+
+            //Default case (dates, objects, etc.)
+            return sortAscending ? valA - valB : valB - valA;
+        });
+    }
+});
+
+Ext.override(Rally.ui.cardboard.Card,{
+    defaultColor: "#FF0000",
+    acknowledgedColor: '#0000FF',
+    _buildHtml: function () {
+        var html = [];
+
+        var artifactColorDiv = {
+            tag: 'div',
+            cls: 'artifact-color'
+        };
+        if (this.record.get('DisplayColor')) {
+            artifactColorDiv.style = {
+                backgroundColor: this.record.get('DisplayColor')
+            };
+        } else {
+            artifactColorDiv.style = {
+                backgroundColor: this.defaultColor
+            };
+        }
+        html.push(Ext.DomHelper.createHtml(artifactColorDiv));
+        html.push('<div class="card-table-ct"><table class="card-table"><tr>');
+
+        Ext.Array.push(
+            html,
+            _.invoke(
+                _.compact([this.contentLeftPlugin, this.contentRightPlugin]),
+                'getHtml'
+            )
+        );
+
+        html.push('</tr></table>');
+
+        if (this.iconsPlugin) {
+            html.push(this.iconsPlugin.getHtml());
+        }
+
+        html.push('</div>');
+
+        return html.join('\n');
+    }
+});
+
+Ext.override(Rally.ui.cardboard.plugin.CardContentLeft, {
+    /**
+     * override to show giver
+     */
+    _getRenderTpl: function(fieldDefinition) {
+        var card = this.card,
+            modelField = card.getRecord().getField(fieldDefinition.name),
+            hasData = (Ext.isFunction(fieldDefinition.hasValue) && fieldDefinition.hasValue()) || card.getRecord().hasValue(modelField),
+            isRenderable = hasData || (modelField && modelField.isCollection());
+
+
+        if (modelField && modelField.isHidden) {
+            return null;
+        }
+
+        if (!isRenderable) {
+            return null;
+        }
+
+        //Override for giver
+        if (fieldDefinition.name == 'Tags'){
+            return Ext.create('Rally.technicalservices.renderer.template.FilteredPillTemplate',{
+                collectionName: 'Tags',
+                cls: 'rui-tag-list-item',
+                filterBy: '^Issuer:',
+                filterByFlag: "i"
+            });
+        }
+
+        if (!fieldDefinition.renderTpl && modelField) {
+            return Rally.ui.cardboard.CardRendererFactory.getRenderTemplate(modelField);
+        }
+
+        return fieldDefinition.renderTpl;
+    }
+});
+
+
+Ext.define('Rally.technicalservices.window.PrintCards',{    extend: 'Ext.Window',
+    logger: new Rally.technicalservices.Logger(),
+    truncateText: '...',
+    config: {
+        title: 'print...',
+        records: null,
+        styleSheetTitle: "printCards",
+        /**
+         *  Array of the following:
+         *  dataIndex
+         *  maxLength (default 0)
+         *  cls (defaults are: card-title, content,
+         */
+        displayFields: null
+    },
+    constructor: function(config){
+        this.initConfig(config);
+    },
+    show: function(){
+        var options = "toolbar=1,menubar=1,scrollbars=yes,scrolling=yes,resizable=yes,width=1000,height=500";
+        var win = window.open('',this.title);
+
+        var html = this._buildCardsHTML();
+        console.log(html);
+        win.document.write('<html><head><title>' + this.title + '</title>');
+        win.document.write('<style>');
+        win.document.write(this._getStyleSheet(this.styleSheetTitle));
+        win.document.write('</style>');
+        win.document.write('</head><body class="landscape">');
+        win.document.write(html);
+        win.document.write('</body></html>');
+
+        win.document.close();
+
+        win.print();
+        win.close();
+    },
+    _buildCardsHTML: function() {
+
+        var html = '';
+        var total_cards = this.records.length;
+        var card_num = 0;
+
+        Ext.each(this.records, function(record){
+
+            var value_html = '';
+            //Todo organize by content or header...
+            Ext.each(this.displayFields, function(df){
+                var value = record.get(df.dataIndex);
+                if ( df.renderer ) {
+                    value = df.renderer(value,null,record);
+                }
+                df.maxLenth = df.maxLength || 0;
+                if (df.maxLength > 0 && value.length > df.maxLength){
+                    value = value.substring(0,df.maxLength);
+                    value = value + this.truncateText;
+                }
+                value_html += Ext.String.format('<div class="{0}">{1}</div>',df.cls,value);
+            }, this);
+            html += Ext.String.format('<div class="artifact">{0}</div>', value_html);
+
+            card_num ++;
+            if ((card_num) % 4 === 0) {
+                html += '<div class="pb"></div>';
+            } else if (card_num === total_cards - 1) {
+                html += '<div class="cb">&nbsp;</div>';
+            }
+        },this);
+        return html;
+    },
+    _getStyleSheet: function(styleSheetTitle) {
+        this.logger.log('getStyleSheet');
+        var styleSheet;
+        var docs = Ext.getDoc();
+        var elems = docs.query('style');
+        for (var i=0; i< elems.length; i++){
+            console.log(elems[i].title, styleSheetTitle);
+            if (elems[i].title == styleSheetTitle){
+                styleSheet = elems[i];
+            }
+        }
+        if (styleSheet && styleSheet.innerHTML){
+            return styleSheet.innerHTML;
+        }
+        return '';
+
+    }
+});
+
+Ext.define('Rally.technicalservices.renderer.template.FilteredPillTemplate', {
+        extend: 'Ext.XTemplate',
+        requires: [
+            'Rally.util.Array',
+            'Rally.util.Ref'
+        ],
+        constructor: function(config) {
+            var filterRegex = new RegExp(config.filterBy,config.filterByFlag),
+                collectionName = config.collectionName,
+                iconCls = config.iconCls,
+                cls = config.cls,
+                templateConfig = [
+                    '{[this.joinNames(values)]}',
+                    {
+                        joinNames: function(recordData) {
+                            var names = recordData[collectionName];
+                            if (names._tagsNameArray) {
+                                names = names._tagsNameArray ? names._tagsNameArray : names;
+                            } else {
+                                names = _.map(names, function(obj) {
+                                    return {
+                                        _ref: obj.get('_ref'),
+                                        Name: obj.get('Name')
+                                    };
+                                });
+                            }
+
+                            var filteredNames =  Ext.Array.filter(names, function(a) {
+                                var val = a['Name'];
+
+                                if (val && filterRegex.test(val)) {
+                                    return true;
+                                }
+                                return false;
+                            });
+                            filteredNames = Rally.util.Array.sortByAttribute(filteredNames, 'Name');
+
+                            return _.reduce(filteredNames, function(memo, name) {
+                                var colorAttr = name.DisplayColor ? ' style="color: ' + name.DisplayColor + ';"' : '';
+                                return memo += '<span class="' + cls + '"><span class="' + iconCls + '"' + colorAttr + '></span>'+ name.Name +'</span>';
+                            }, '');
+                        }
+                    },
+                    config
+                ];
+
+            return this.callParent(templateConfig);
+        }
+    }
+);
+Ext.define("team-dependency-board", {
+    extend: 'Rally.app.App',
+    componentCls: 'app',
+    logger: new Rally.technicalservices.Logger(),
+    defaults: { margin: 10 },
+    items: [
+        {xtype:'container',itemId:'criteria_box', layout: {type: 'hbox'}},
+        {xtype:'container',itemId:'display_box'},
+        {xtype:'tsinfolink'}
+    ],
+    dependencyTag: 'Dependency',
+    giveTagPattern: 'Issuer:',
+    /**
+     * controls
+     */
+    cbRelease: null,
+
+    launch: function() {
+        this._initApp();
+    },
+     _initApp: function(){
+        this.cbRelease= this.down('#criteria_box').add({
+            xtype: 'rallyreleasecombobox',
+            listeners: {
+                scope: this,
+                select: this._releaseSelected,
+                ready: this._releaseSelected
+            }
+        });
+         this.down('#criteria_box').add({
+             xtype: 'rallybutton',
+             text: 'Print Cards',
+             listeners: {
+                 scope: this,
+                 click: this._print
+             }
+         });
+    },
+    _openPrintWindow:function(store, records, success){
+        var giverPattern = new RegExp("^" + this.giveTagPattern,"i");
+        var giveTagPrefix = this.giveTagPattern;
+        var fields =[{
+            dataIndex: 'FormattedID',
+            cls: 'cardUpperLeft'
+        },
+            {
+                dataIndex: 'Iteration',
+                cls: 'cardUpperRight',
+                renderer: function(value,meta_data,record){
+                    var iteration = record.get('Iteration');
+                    var iteration_name = "Unscheduled";
+                    if ( iteration ) {
+                        iteration_name = iteration.Name;
+                    }
+
+                    return iteration_name;
+                }
+            },
+            {
+                dataIndex: 'Project',
+                cls: 'cardLowerLeft',
+                renderer: function(value,meta_data,record){
+                    var project = record.get('Project');
+                    var project_name = "";
+                    if (project){
+                        project_name = project.Name;
+                    }
+                    var tags = record.get('Tags');
+                    var giver = "";
+                    if (tags && tags._tagsNameArray){
+
+                        Ext.each(tags._tagsNameArray, function(tag){
+                            if (giverPattern.test(tag.Name)){
+                                giver += tag.Name + "<br/>";
+                            }
+                        });
+                    }
+                    if (giver.length == 0){
+                        giver = giveTagPrefix + " (Not tagged)<br/>";
+                    }
+                    return Ext.String.format("{0}Receiver: {1}",giver, project_name);
+                }
+            },
+            {
+                dataIndex: 'Name',
+                maxLength: 100,
+                cls: 'cardTitle'
+            }];
+
+        var win = Ext.create('Rally.technicalservices.window.PrintCards',{
+            records: records,
+            displayFields: fields,
+            currentDocument: Ext.getDoc()
+        });
+        win.show();
+
+    },
+    _print: function(){
+        var releaseName = this.cbRelease.getRecord().get(this.cbRelease.displayField);
+
+        Ext.create('Rally.data.wsapi.Store',{
+            fetch: ['FormattedID','Iteration','Project','Name','Tags'],
+            model: 'HierarchicalRequirement',
+            filters:  [{
+                property: 'Release.Name',
+                value: releaseName
+            },{
+                property: 'Tags.Name',
+                operator: 'contains',
+                value: this.dependencyTag
+            }],
+            autoLoad: true,
+            listeners: {
+                scope: this,
+                load: this._openPrintWindow
+            }
+        });
+
+
+
+    },
+    _releaseSelected: function(cb){
+        var releaseName = cb.getRecord().get(cb.displayField);
+        this._updateCardboard(releaseName);
+    },
+    _updateCardboard: function(releaseName){
+        this.logger.log('_updateCardboard for release ', releaseName);
+
+        if (this.down('#rally-board')){
+            this.down('#rally-board').destroy();
+        }
+
+        this.down('#display_box').add({
+            itemId: 'rally-board',
+            xtype: 'rallycardboard',
+            attribute: 'Iteration',
+            context: this.getContext(),
+            selectedRelease: this.cbRelease.getRecord(),
+            enableRanking: false,
+            enableCrossColumnRanking: false,
+            columnConfig: {
+                enableCrossRowDragging: false,
+                dropControllerConfig: false,
+                plugins: ['rallycardboardcollapsiblecolumns']
+            },
+            rowConfig: {
+                field: 'Project'
+            },
+            cardConfig: {
+                fields: ['Name','Tags'],
+                showPlusIcon: false,
+                showRankMenuItems: false,
+                showSplitMenuItem: false,
+                showColorIcon: true,
+                showReadyIcon: false,
+                showBlockedIcon: false
+            },
+            storeConfig: {
+                filters:  [{
+                    property: 'Release.Name',
+                    value: releaseName
+                },{
+                    property: 'Tags.Name',
+                    operator: 'contains',
+                    value: this.dependencyTag
+                }]
+            }
+        });
+    }
+
+});
+
+
+    /**
+     * @private
+     * A plugin to allow a cardboard column to collapse and expand itself
+     */
+    Ext.override(Rally.ui.cardboard.plugin.CollapsibleColumns, {
+
+        _collapseExpandSuccess: function(collapsing) {
+            this.cardboard.fireEvent('headersizechanged', this);
+            this.cardboard.fireEvent('columnvisibilitychanged', this);
+
+            if (collapsing) {
+                this.expandButton.show();
+                if (this.column.dropControllerPlugin){
+                    this.column.dropControllerPlugin.disable();
+                }
+
+                Ext.defer(function() {
+                    _.invoke(this.column.getContentCellContainers(), 'on', 'click', this._onColumnClick, this);
+                    this.column.getColumnHeaderCell().on('click', this._onColumnClick, this);
+                }, 1, this);
+
+            } else {
+                this.collapseButton.show();
+                _.invoke(this.column.getContentCells(), 'show');
+                if (this.column.dropControllerPlugin){
+                    this.column.dropControllerPlugin.enable();
+                }
+
+                this._setClassesForCollapseState(false);
+                _.invoke(this.column.getContentCellContainers(), 'un', 'click', this._onColumnClick, this);
+                this.column.getColumnHeaderCell().un('click', this._onColumnClick, this);
+            }
+        }
+    });
+
+            
+               Rally.launchApp('team-dependency-board', {
+                   name: 'Team Dependency Board'
+               });
+        });
+    </script>
+    
+    <style type="text/css">
+
+.app {
+}
+.tsinfolink {
+    position:absolute;
+    right:0px;
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    text-align: center;
+    color: white;
+    background: #C0C0C0;
+    border-style: solid;
+    border-width: 1px;
+    margin-top: 25px;
+    margin-right: 5px;
+    cursor: pointer;
+}
+
+
+<style type="text/css" title="printCards">
+/* PLEASE LEAVE THIS STYLESHEET INLINE SINCE TITLE IS NECESSARY */
+@media print {
+    #interface {
+        display: none;
+    }
+
+    .pb {
+        page-break-after: always;
+        clear: both;
+    }
+}
+
+.pb {
+    page-break-after: always;
+    clear: both;
+}
+#buttonDiv,
+#iterationDropdown {
+    display: inline;
+}
+
+#interface, #printSection {
+    margin: 20px;
+}
+
+html {
+    background-color: #fff;
+    color: #000;
+    font: 14pt / 1.26 Arial, Helvetica, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: #fff;
+    margin: 0;
+    padding: 0;
+}
+
+.cb {
+    clear: both;
+}
+
+.artifact {
+    background-color: #fff;
+    border: 2px solid #000;
+    float: left;
+    height: 3.2in;
+    margin: 0.1in 0.1in 0.1in 0.1in;
+    position: relative;
+    overflow: hidden;
+    width: 4.3in;
+}
+
+.header {
+    border: 1px;
+    border-bottom-style: solid;
+    display: table-cell;
+    height: 40px;
+    vertical-align: middle;
+    width: 4.3in;
+}
+
+.cardTitle {
+    font: bold 24px Genova, sans-serif;
+    padding-top: 3em;
+    text-align: center;
+}
+
+.description {
+    float: left;
+    font: 12pt Georgia, sans-serif;
+    margin: 15em auto 0 auto;
+    padding-left: 1.0em;
+    padding-right: 1.0em;
+    overflow-y: hidden;
+    width: 100%;
+    word-wrap: break-word;
+}
+
+.cardUpperRight {
+    text-align: right;
+    font: bold 20px Arial, Helvetica, sans-serif;
+    top: 0.5em;
+    right: 0.5em;
+    position: absolute;
+}
+
+.cardUpperInnerLeft {
+    text-align: center;
+    font: bold 20px Arial, Helvetica, sans-serif;
+    top: 0.5em;
+    left: 4.0em;
+    width: 6.0em;
+    position: absolute;
+}
+.cardUpperInnerRight {
+    text-align: center;
+    font: bold 20px Arial, Helvetica, sans-serif;
+    top: 0.5em;
+    right: 4.0em;
+    width: 6.0em;
+    position: absolute;
+}
+.cardUpperLeft {
+    position: absolute;
+    font: bold 20px Arial, Helvetica, sans-serif;
+    top: 0.5em;
+    left: 0.5em;
+}
+
+.cardLowerLeft {
+    bottom: 0.5em;
+    left: 0.5em;
+    position: absolute;
+}
+
+.cardLowerRight {
+    bottom: 0.5em;
+    position: absolute;
+    right: 0.5em;
+}
+
+.cardUpperCenter {
+    font: bold 20px Arial, Helvetica, sans-serif;
+    text-align: center;
+    top: 0.5em;
+    position: absolute;
+    right: 0.5in;
+    display: inline;
+    width: 3in;
+}
+
+.content {
+    height: 2.4in;
+    overflow: hidden;
+    width: 4.3in;
+}
+
+</style>
+    </style>
+    <style type="text/css" title="printCards">
+        /* PLEASE LEAVE THIS STYLESHEET INLINE SINCE TITLE IS NECESSARY */
+        @media print {
+            #interface {
+                display: none;
+            }
+
+            .pb {
+                page-break-after: always;
+                clear: both;
+            }
+        }
+
+        .pb {
+            page-break-after: always;
+            clear: both;
+        }
+        #buttonDiv,
+        #iterationDropdown {
+            display: inline;
+        }
+
+        #interface, #printSection {
+            margin: 20px;
+        }
+
+        html {
+            background-color: #fff;
+            color: #000;
+            font: 14pt / 1.26 Arial, Helvetica, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+
+        .cb {
+            clear: both;
+        }
+
+        .artifact {
+            background-color: #fff;
+            border: 2px solid #000;
+            float: left;
+            height: 3.2in;
+            margin: 0.1in 0.1in 0.1in 0.1in;
+            position: relative;
+            overflow: hidden;
+            width: 4.3in;
+        }
+
+        .header {
+            border: 1px;
+            border-bottom-style: solid;
+            display: table-cell;
+            height: 40px;
+            vertical-align: middle;
+            width: 4.3in;
+        }
+
+        .cardTitle {
+            font: bold 24px Genova, sans-serif;
+            padding-top: 3em;
+            text-align: center;
+        }
+
+        .description {
+            float: left;
+            font: 12pt Georgia, sans-serif;
+            margin: 15em auto 0 auto;
+            padding-left: 1.0em;
+            padding-right: 1.0em;
+            overflow-y: hidden;
+            width: 100%;
+            word-wrap: break-word;
+        }
+
+        .cardUpperRight {
+            text-align: right;
+            font: bold 20px Arial, Helvetica, sans-serif;
+            top: 0.5em;
+            right: 0.5em;
+            position: absolute;
+        }
+
+        .cardUpperInnerLeft {
+            text-align: center;
+            font: bold 20px Arial, Helvetica, sans-serif;
+            top: 0.5em;
+            left: 4.0em;
+            width: 6.0em;
+            position: absolute;
+        }
+        .cardUpperInnerRight {
+            text-align: center;
+            font: bold 20px Arial, Helvetica, sans-serif;
+            top: 0.5em;
+            right: 4.0em;
+            width: 6.0em;
+            position: absolute;
+        }
+        .cardUpperLeft {
+            position: absolute;
+            font: bold 20px Arial, Helvetica, sans-serif;
+            top: 0.5em;
+            left: 0.5em;
+        }
+
+        .cardLowerLeft {
+            bottom: 0.5em;
+            left: 0.5em;
+            position: absolute;
+        }
+
+        .cardLowerRight {
+            bottom: 0.5em;
+            position: absolute;
+            right: 0.5em;
+        }
+
+        .cardUpperCenter {
+            font: bold 20px Arial, Helvetica, sans-serif;
+            text-align: center;
+            top: 0.5em;
+            position: absolute;
+            right: 0.5in;
+            display: inline;
+            width: 3in;
+        }
+
+        .content {
+            height: 2.4in;
+            overflow: hidden;
+            width: 4.3in;
+        }
+
+    </style>
+</head>
+<body></body>
+</html>
