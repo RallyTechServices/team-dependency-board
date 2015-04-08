@@ -115,9 +115,6 @@ Ext.define("team-dependency-board", {
                 load: this._openPrintWindow
             }
         });
-
-
-
     },
     _releaseSelected: function(cb){
         var releaseName = cb.getRecord().get(cb.displayField);
@@ -152,7 +149,7 @@ Ext.define("team-dependency-board", {
                 showRankMenuItems: false,
                 showSplitMenuItem: false,
                 showColorIcon: true,
-                showReadyIcon: false,
+                showReadyIcon: true,
                 showBlockedIcon: false
             },
             storeConfig: {

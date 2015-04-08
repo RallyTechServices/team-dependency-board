@@ -205,7 +205,6 @@ Ext.override(Rally.ui.cardboard.Column,{
 
 Ext.override(Rally.ui.cardboard.Card,{
     defaultColor: "#FF0000",
-    acknowledgedColor: '#0000FF',
     _buildHtml: function () {
         var html = [];
 
@@ -218,9 +217,11 @@ Ext.override(Rally.ui.cardboard.Card,{
                 backgroundColor: this.record.get('DisplayColor')
             };
         } else {
-            artifactColorDiv.style = {
-                backgroundColor: this.defaultColor
-            };
+            if (!this.record.get('Ready')){
+                artifactColorDiv.style = {
+                    backgroundColor: this.defaultColor
+                };
+            }
         }
         html.push(Ext.DomHelper.createHtml(artifactColorDiv));
         html.push('<div class="card-table-ct"><table class="card-table"><tr>');
