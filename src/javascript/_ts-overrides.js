@@ -203,6 +203,48 @@ Ext.override(Rally.ui.cardboard.Column,{
     }
 });
 
+Ext.override(Rally.ui.cardboard.Card,{
+    defaultColor: "#FF0000",
+    acknowledgedColor: '#0000FF',
+    _buildHtml: function () {
+        var html = [];
+
+        var artifactColorDiv = {
+            tag: 'div',
+            cls: 'artifact-color'
+        };
+        if (this.record.get('DisplayColor')) {
+            artifactColorDiv.style = {
+                backgroundColor: this.record.get('DisplayColor')
+            };
+        } else {
+            artifactColorDiv.style = {
+                backgroundColor: this.defaultColor
+            };
+        }
+        html.push(Ext.DomHelper.createHtml(artifactColorDiv));
+        html.push('<div class="card-table-ct"><table class="card-table"><tr>');
+
+        Ext.Array.push(
+            html,
+            _.invoke(
+                _.compact([this.contentLeftPlugin, this.contentRightPlugin]),
+                'getHtml'
+            )
+        );
+
+        html.push('</tr></table>');
+
+        if (this.iconsPlugin) {
+            html.push(this.iconsPlugin.getHtml());
+        }
+
+        html.push('</div>');
+
+        return html.join('\n');
+    }
+});
+
 Ext.override(Rally.ui.cardboard.plugin.CardContentLeft, {
     /**
      * override to show giver
@@ -227,7 +269,7 @@ Ext.override(Rally.ui.cardboard.plugin.CardContentLeft, {
             return Ext.create('Rally.technicalservices.renderer.template.FilteredPillTemplate',{
                 collectionName: 'Tags',
                 cls: 'rui-tag-list-item',
-                filterBy: '^Give:',
+                filterBy: '^Issuer:',
                 filterByFlag: "i"
             });
         }

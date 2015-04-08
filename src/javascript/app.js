@@ -9,6 +9,7 @@ Ext.define("team-dependency-board", {
         {xtype:'tsinfolink'}
     ],
     dependencyTag: 'Dependency',
+    giveTagPattern: 'Issuer:',
     /**
      * controls
      */
@@ -36,7 +37,8 @@ Ext.define("team-dependency-board", {
          });
     },
     _openPrintWindow:function(store, records, success){
-        var giverPattern = new RegExp('^Give:',"i");
+        var giverPattern = new RegExp("^" + this.giveTagPattern,"i");
+        var giveTagPrefix = this.giveTagPattern;
         var fields =[{
             dataIndex: 'FormattedID',
             cls: 'cardUpperLeft'
@@ -74,9 +76,9 @@ Ext.define("team-dependency-board", {
                         });
                     }
                     if (giver.length == 0){
-                        giver = "Give: (Not tagged)<br/>";
+                        giver = giveTagPrefix + " (Not tagged)<br/>";
                     }
-                    return Ext.String.format("{0}Get: {1}",giver, project_name);
+                    return Ext.String.format("{0}Receiver: {1}",giver, project_name);
                 }
             },
             {
@@ -145,7 +147,13 @@ Ext.define("team-dependency-board", {
                 field: 'Project'
             },
             cardConfig: {
-                fields: ['Name','Tags']
+                fields: ['Name','Tags'],
+                showPlusIcon: false,
+                showCopyMenuItem: false,
+                showAddChildMenuItem: false,
+                showRankMenuItems: false,
+                showSplitMenuItem: false,
+                showDeleteMenuItem: false
             },
             storeConfig: {
                 filters:  [{
