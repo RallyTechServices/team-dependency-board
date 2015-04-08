@@ -149,11 +149,11 @@ Ext.define("team-dependency-board", {
             cardConfig: {
                 fields: ['Name','Tags'],
                 showPlusIcon: false,
-                showCopyMenuItem: false,
-                showAddChildMenuItem: false,
                 showRankMenuItems: false,
                 showSplitMenuItem: false,
-                showDeleteMenuItem: false
+                showColorIcon: true,
+                showReadyIcon: false,
+                showBlockedIcon: false
             },
             storeConfig: {
                 filters:  [{

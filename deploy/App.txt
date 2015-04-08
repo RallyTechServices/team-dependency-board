@@ -3,11 +3,11 @@
 <head>
     <title>Team Dependency Board</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Tue Apr 07 2015 20:05:52 GMT-0700 (PDT) -->
+    <!--  Build Date: Tue Apr 07 2015 20:12:46 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Tue Apr 07 2015 20:05:52 GMT-0700 (PDT)";
-        var CHECKSUM = 44340950321;
+        var APP_BUILD_DATE = "Tue Apr 07 2015 20:12:46 GMT-0700 (PDT)";
+        var CHECKSUM = 44299739730;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -1258,11 +1258,11 @@ Ext.define("team-dependency-board", {
             cardConfig: {
                 fields: ['Name','Tags'],
                 showPlusIcon: false,
-                showCopyMenuItem: false,
-                showAddChildMenuItem: false,
                 showRankMenuItems: false,
                 showSplitMenuItem: false,
-                showDeleteMenuItem: false
+                showColorIcon: true,
+                showReadyIcon: false,
+                showBlockedIcon: false
             },
             storeConfig: {
                 filters:  [{
