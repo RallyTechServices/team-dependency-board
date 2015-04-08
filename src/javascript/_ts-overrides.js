@@ -26,9 +26,12 @@ Ext.override(Rally.ui.cardboard.CardBoard,{
 
         var start_date = this.selectedRelease.get('ReleaseStartDate');
         var end_date = this.selectedRelease.get('ReleaseDate');
+
         var filters = [{property:'StartDate',operator:'<',value: end_date}];
         filters.push({property: 'EndDate', operator: '>', value: start_date});
-
+        if (this.iterationNameFilter){
+            filters.push({property: 'Name', operator: 'contains', value: this.iterationNameFilter});
+        }
         var iteration_names = [];
 
         Ext.create('Rally.data.WsapiDataStore',{

@@ -120,6 +120,16 @@ Ext.define("team-dependency-board", {
         var releaseName = cb.getRecord().get(cb.displayField);
         this._updateCardboard(releaseName);
     },
+    _getIterationNameFilter: function(releaseName){
+        var iterationNameFilter = null;
+        if (releaseName){
+            var match = /Release ([\d]*)/.exec(releaseName);
+            if (match && match.length > 1){
+                return 'R' + match[1];
+            }
+        }
+        return iterationNameFilter;
+    },
     _updateCardboard: function(releaseName){
         this.logger.log('_updateCardboard for release ', releaseName);
 
@@ -133,6 +143,7 @@ Ext.define("team-dependency-board", {
             attribute: 'Iteration',
             context: this.getContext(),
             selectedRelease: this.cbRelease.getRecord(),
+            iterationNameFilter: this._getIterationNameFilter(releaseName),
             enableRanking: false,
             enableCrossColumnRanking: false,
             columnConfig: {
