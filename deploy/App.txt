@@ -3,11 +3,11 @@
 <head>
     <title>Team Dependency Board</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Wed Apr 08 2015 12:17:43 GMT-0700 (PDT) -->
+    <!--  Build Date: Wed Apr 08 2015 16:46:39 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Wed Apr 08 2015 12:17:43 GMT-0700 (PDT)";
-        var CHECKSUM = 18510397678;
+        var APP_BUILD_DATE = "Wed Apr 08 2015 16:46:39 GMT-0700 (PDT)";
+        var CHECKSUM = 20266346895;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -195,9 +195,12 @@ Ext.override(Rally.ui.cardboard.CardBoard,{
                             value: record,
 
                             columnHeaderConfig: {
-                                headerTpl: "{name}",
+                                headerTpl: "{name}<br/><div class=\"column-card-count\">{start}-{end}</div>",
                                 headerData: {
-                                    name: record.get('Name')
+                                    name: record.get('Name'),
+                                    start: Rally.util.DateTime.format(Rally.util.DateTime.fromIsoString(record.get('StartDate')),'M d'),
+                                    end: Rally.util.DateTime.format(Rally.util.DateTime.fromIsoString(record.get('EndDate')),'M d')
+
                                 }
                             }
                         });
@@ -594,6 +597,8 @@ Ext.define("team-dependency-board", {
      _initApp: function(){
         this.cbRelease= this.down('#criteria_box').add({
             xtype: 'rallyreleasecombobox',
+            stateful: true,
+            stateId: this.getContext().getScopedStateId('cb-release'),
             listeners: {
                 scope: this,
                 select: this._releaseSelected,
@@ -630,6 +635,16 @@ Ext.define("team-dependency-board", {
                 }
             },
             {
+                dataIndex: 'PlanEstimate',
+                cls: 'cardLowerRight',
+                renderer: function(value,meta_data,record){
+                    if (value){
+                        return Ext.String.format('({0})',value);
+                    }
+                    return '(--)';
+                }
+            },
+            {
                 dataIndex: 'Project',
                 cls: 'cardLowerLeft',
                 renderer: function(value,meta_data,record){
@@ -658,6 +673,18 @@ Ext.define("team-dependency-board", {
                 dataIndex: 'Name',
                 maxLength: 100,
                 cls: 'cardTitle'
+
+            },{
+                dataIndex: 'Feature',
+                cls: 'cardSubtitle',
+                renderer: function(value,meta_data,record){
+                    var feature = 'No Feature';
+                    if (record.get('Feature')){
+                        feature = Ext.String.format('Feature {0}: {1}',record.get('Feature').FormattedID, record.get('Feature').Name);
+                    }
+                    return feature;
+
+                }
             }];
 
         var win = Ext.create('Rally.technicalservices.window.PrintCards',{
@@ -672,7 +699,7 @@ Ext.define("team-dependency-board", {
         var releaseName = this.cbRelease.getRecord().get(this.cbRelease.displayField);
 
         Ext.create('Rally.data.wsapi.Store',{
-            fetch: ['FormattedID','Iteration','Project','Name','Tags'],
+            fetch: ['FormattedID','Iteration','Project','Name','Tags','PlanEstimate','Feature'],
             model: 'HierarchicalRequirement',
             filters:  [{
                 property: 'Release.Name',
@@ -728,7 +755,7 @@ Ext.define("team-dependency-board", {
                 field: 'Project'
             },
             cardConfig: {
-                fields: ['Name','Feature','Tags'],
+                fields: ['Name','Feature','Tags','PlanEstimate'],
                 showPlusIcon: false,
                 showRankMenuItems: false,
                 showSplitMenuItem: false,
@@ -880,11 +907,17 @@ body {
 }
 
 .cardTitle {
-    font: bold 24px Genova, sans-serif;
+    font: bold 18px Genova, sans-serif;
     padding-top: 3em;
     text-align: center;
 }
 
+.cardSubtitle {
+    font: 14px Genova, sans-serif;
+    text-align: center;
+    left: 0.5in;
+    width: 3in;
+}
 .description {
     float: left;
     font: 12pt Georgia, sans-serif;
@@ -898,7 +931,7 @@ body {
 
 .cardUpperRight {
     text-align: right;
-    font: bold 20px Arial, Helvetica, sans-serif;
+    font: bold 18px Arial, Helvetica, sans-serif;
     top: 0.5em;
     right: 0.5em;
     position: absolute;
@@ -906,7 +939,7 @@ body {
 
 .cardUpperInnerLeft {
     text-align: center;
-    font: bold 20px Arial, Helvetica, sans-serif;
+    font: bold 18px Arial, Helvetica, sans-serif;
     top: 0.5em;
     left: 4.0em;
     width: 6.0em;
@@ -914,7 +947,7 @@ body {
 }
 .cardUpperInnerRight {
     text-align: center;
-    font: bold 20px Arial, Helvetica, sans-serif;
+    font: bold 18px Arial, Helvetica, sans-serif;
     top: 0.5em;
     right: 4.0em;
     width: 6.0em;
@@ -922,7 +955,7 @@ body {
 }
 .cardUpperLeft {
     position: absolute;
-    font: bold 20px Arial, Helvetica, sans-serif;
+    font: bold 18px Arial, Helvetica, sans-serif;
     top: 0.5em;
     left: 0.5em;
 }
@@ -940,7 +973,7 @@ body {
 }
 
 .cardUpperCenter {
-    font: bold 20px Arial, Helvetica, sans-serif;
+    font: bold 18px Arial, Helvetica, sans-serif;
     text-align: center;
     top: 0.5em;
     position: absolute;
@@ -957,6 +990,7 @@ body {
 
 </style>
     </style>
+
     <style type="text/css" title="printCards">
         /* PLEASE LEAVE THIS STYLESHEET INLINE SINCE TITLE IS NECESSARY */
         @media print {
@@ -1022,9 +1056,15 @@ body {
         }
 
         .cardTitle {
-            font: bold 24px Genova, sans-serif;
+            font: bold 18px Genova, sans-serif;
             padding-top: 3em;
             text-align: center;
+        }
+        .cardSubtitle {
+            font: 14px Genova, sans-serif;
+            text-align: center;
+            left: 0.5in;
+            width: 3in;
         }
 
         .description {
@@ -1040,7 +1080,7 @@ body {
 
         .cardUpperRight {
             text-align: right;
-            font: bold 20px Arial, Helvetica, sans-serif;
+            font: bold 18px Arial, Helvetica, sans-serif;
             top: 0.5em;
             right: 0.5em;
             position: absolute;
@@ -1048,7 +1088,7 @@ body {
 
         .cardUpperInnerLeft {
             text-align: center;
-            font: bold 20px Arial, Helvetica, sans-serif;
+            font: bold 18px Arial, Helvetica, sans-serif;
             top: 0.5em;
             left: 4.0em;
             width: 6.0em;
@@ -1056,7 +1096,7 @@ body {
         }
         .cardUpperInnerRight {
             text-align: center;
-            font: bold 20px Arial, Helvetica, sans-serif;
+            font: bold 18px Arial, Helvetica, sans-serif;
             top: 0.5em;
             right: 4.0em;
             width: 6.0em;
@@ -1064,7 +1104,7 @@ body {
         }
         .cardUpperLeft {
             position: absolute;
-            font: bold 20px Arial, Helvetica, sans-serif;
+            font: bold 18px Arial, Helvetica, sans-serif;
             top: 0.5em;
             left: 0.5em;
         }
@@ -1082,7 +1122,7 @@ body {
         }
 
         .cardUpperCenter {
-            font: bold 20px Arial, Helvetica, sans-serif;
+            font: bold 18px Arial, Helvetica, sans-serif;
             text-align: center;
             top: 0.5em;
             position: absolute;

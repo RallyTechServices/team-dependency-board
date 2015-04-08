@@ -55,9 +55,12 @@ Ext.override(Rally.ui.cardboard.CardBoard,{
                             value: record,
 
                             columnHeaderConfig: {
-                                headerTpl: "{name}",
+                                headerTpl: "{name}<br/><div class=\"column-card-count\">{start}-{end}</div>",
                                 headerData: {
-                                    name: record.get('Name')
+                                    name: record.get('Name'),
+                                    start: Rally.util.DateTime.format(Rally.util.DateTime.fromIsoString(record.get('StartDate')),'M d'),
+                                    end: Rally.util.DateTime.format(Rally.util.DateTime.fromIsoString(record.get('EndDate')),'M d')
+
                                 }
                             }
                         });
