@@ -3,11 +3,11 @@
 <head>
     <title>Team Dependency Board</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Wed Apr 08 2015 16:46:39 GMT-0700 (PDT) -->
+    <!--  Build Date: Tue Apr 14 2015 09:47:36 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Wed Apr 08 2015 16:46:39 GMT-0700 (PDT)";
-        var CHECKSUM = 20266346895;
+        var APP_BUILD_DATE = "Tue Apr 14 2015 09:47:36 GMT-0700 (PDT)";
+        var CHECKSUM = 21269862875;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -421,7 +421,7 @@ Ext.override(Rally.ui.cardboard.plugin.CardContentLeft, {
             return Ext.create('Rally.technicalservices.renderer.template.FilteredPillTemplate',{
                 collectionName: 'Tags',
                 cls: 'rui-tag-list-item',
-                filterBy: '^Issuer:',
+                filterBy: '^Issuer:|Dependency|Impediment',
                 filterByFlag: "i"
             });
         }
@@ -585,6 +585,7 @@ Ext.define("team-dependency-board", {
         {xtype:'tsinfolink'}
     ],
     dependencyTag: 'Dependency',
+    tagsOfInterest: ['Dependency','Impediment'],
     giveTagPattern: 'Issuer:',
     /**
      * controls
@@ -701,14 +702,15 @@ Ext.define("team-dependency-board", {
         Ext.create('Rally.data.wsapi.Store',{
             fetch: ['FormattedID','Iteration','Project','Name','Tags','PlanEstimate','Feature'],
             model: 'HierarchicalRequirement',
-            filters:  [{
-                property: 'Release.Name',
-                value: releaseName
-            },{
-                property: 'Tags.Name',
-                operator: 'contains',
-                value: this.dependencyTag
-            }],
+            filters:  this._getFilters(releaseName),
+            //    [{
+            //    property: 'Release.Name',
+            //    value: releaseName
+            //},{
+            //    property: 'Tags.Name',
+            //    operator: 'contains',
+            //    value: this.dependencyTag
+            //}],
             autoLoad: true,
             listeners: {
                 scope: this,
@@ -764,16 +766,33 @@ Ext.define("team-dependency-board", {
                 showBlockedIcon: false
             },
             storeConfig: {
-                filters:  [{
-                    property: 'Release.Name',
-                    value: releaseName
-                },{
-                    property: 'Tags.Name',
-                    operator: 'contains',
-                    value: this.dependencyTag
-                }]
+                filters: this._getFilters(releaseName)
+                //    [{
+                //    property: 'Release.Name',
+                //    value: releaseName
+                //},{
+                //    property: 'Tags.Name',
+                //    operator: 'contains',
+                //    value: this.dependencyTag
+                //}]
             }
         });
+    },
+    _getFilters: function(releaseName){
+        var filters = [];
+        Ext.each(this.tagsOfInterest, function(tag){
+            filters.push(Ext.create('Rally.data.wsapi.Filter', {
+                property: 'Tags.Name',
+                operator: 'contains',
+                value: tag
+            }));
+        });
+        filters = Rally.data.wsapi.Filter.or(filters);
+        filters = filters.and(Ext.create('Rally.data.wsapi.Filter',{
+            property: 'Release.Name',
+            value: releaseName
+        }));
+        return filters;
     }
 
 });
