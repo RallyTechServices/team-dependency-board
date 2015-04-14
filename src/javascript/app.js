@@ -9,6 +9,7 @@ Ext.define("team-dependency-board", {
         {xtype:'tsinfolink'}
     ],
     dependencyTag: 'Dependency',
+    tagsOfInterest: ['Dependency','Impediment'],
     giveTagPattern: 'Issuer:',
     /**
      * controls
@@ -125,14 +126,15 @@ Ext.define("team-dependency-board", {
         Ext.create('Rally.data.wsapi.Store',{
             fetch: ['FormattedID','Iteration','Project','Name','Tags','PlanEstimate','Feature'],
             model: 'HierarchicalRequirement',
-            filters:  [{
-                property: 'Release.Name',
-                value: releaseName
-            },{
-                property: 'Tags.Name',
-                operator: 'contains',
-                value: this.dependencyTag
-            }],
+            filters:  this._getFilters(releaseName),
+            //    [{
+            //    property: 'Release.Name',
+            //    value: releaseName
+            //},{
+            //    property: 'Tags.Name',
+            //    operator: 'contains',
+            //    value: this.dependencyTag
+            //}],
             autoLoad: true,
             listeners: {
                 scope: this,
@@ -188,16 +190,33 @@ Ext.define("team-dependency-board", {
                 showBlockedIcon: false
             },
             storeConfig: {
-                filters:  [{
-                    property: 'Release.Name',
-                    value: releaseName
-                },{
-                    property: 'Tags.Name',
-                    operator: 'contains',
-                    value: this.dependencyTag
-                }]
+                filters: this._getFilters(releaseName)
+                //    [{
+                //    property: 'Release.Name',
+                //    value: releaseName
+                //},{
+                //    property: 'Tags.Name',
+                //    operator: 'contains',
+                //    value: this.dependencyTag
+                //}]
             }
         });
+    },
+    _getFilters: function(releaseName){
+        var filters = [];
+        Ext.each(this.tagsOfInterest, function(tag){
+            filters.push(Ext.create('Rally.data.wsapi.Filter', {
+                property: 'Tags.Name',
+                operator: 'contains',
+                value: tag
+            }));
+        });
+        filters = Rally.data.wsapi.Filter.or(filters);
+        filters = filters.and(Ext.create('Rally.data.wsapi.Filter',{
+            property: 'Release.Name',
+            value: releaseName
+        }));
+        return filters;
     }
 
 });

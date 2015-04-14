@@ -281,7 +281,7 @@ Ext.override(Rally.ui.cardboard.plugin.CardContentLeft, {
             return Ext.create('Rally.technicalservices.renderer.template.FilteredPillTemplate',{
                 collectionName: 'Tags',
                 cls: 'rui-tag-list-item',
-                filterBy: '^Issuer:',
+                filterBy: '^Issuer:|Dependency|Impediment',
                 filterByFlag: "i"
             });
         }
