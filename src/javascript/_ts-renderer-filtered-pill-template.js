@@ -18,6 +18,13 @@ Ext.define('Rally.technicalservices.renderer.template.FilteredPillTemplate', {
                                 names = names._tagsNameArray ? names._tagsNameArray : names;
                             } else {
                                 names = _.map(names, function(obj) {
+                                    if (obj.get('Name') == 'Blocker'){
+                                        return {
+                                            _ref: obj.get('_ref'),
+                                            Name: obj.get('Name'),
+                                            //DisplayColor: 'red'
+                                        };
+                                    }
                                     return {
                                         _ref: obj.get('_ref'),
                                         Name: obj.get('Name')

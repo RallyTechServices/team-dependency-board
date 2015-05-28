@@ -9,7 +9,9 @@ Ext.define("team-dependency-board", {
         {xtype:'tsinfolink'}
     ],
     dependencyTag: 'Dependency',
-    tagsOfInterest: ['Dependency','Impediment'],
+    acceptedDependencyTag: 'Accepted Dependency',
+    tagRefs: {},
+    tagsOfInterest: ['Dependency','Impediment','Blocker','Accepted Dependency'],
     giveTagPattern: 'Issuer:',
     /**
      * controls
@@ -17,7 +19,85 @@ Ext.define("team-dependency-board", {
     cbRelease: null,
 
     launch: function() {
-        this._initApp();
+        this._getTagRefs();
+
+    },
+    _getTagRefs: function(){
+
+        var filters=  Ext.create('Rally.data.wsapi.Filter',{
+            property: 'Name',
+            value: this.dependencyTag
+        });
+        filters = filters.or(Ext.create('Rally.data.wsapi.Filter',{
+            property: 'Name',
+            value: this.acceptedDependencyTag
+        }));
+
+        var store = Ext.create('Rally.data.wsapi.Store',{
+            model: 'Tag',
+            fetch: ['Name','_ref'],
+            filters: filters
+        });
+        store.load({
+            scope: this,
+            callback: function(records, operation, success){
+                this.logger.log('tags fetched',success,records,operation);
+                _.each(records, function(r){
+                   this.tagRefs[r.get('Name')] = r.get('_ref');
+                }, this);
+
+                if (!this.tagRefs[this.acceptedDependencyTag] || !this.tagRefs[this.dependencyTag]){
+                    this.add({
+                        xtype: 'container',
+                        html: Ext.String.format('Please verify the necessary tags for this app have been created:<br/> <li><b>{0}</b></li><li><b>{1}</li></b>',
+                            this.acceptedDependencyTag, this.dependencyTag)
+                    });
+                } else {
+                    this._initApp();
+                }
+                this.logger.log('Tag refs: ',this.tagRefs);
+            }
+        });
+    },
+    _createTags: function(tagsToCreate){
+        var deferred = Ext.create('Deft.Deferred');
+        this.logger.log('_createTags',tagsToCreate);
+
+        Rally.data.ModelFactory.getModel({
+            type: 'Tag',
+            scope: this,
+            success: function(model) {
+                this.logger.log('Tag model fetched');
+
+                var promises = [];
+                _.each(tagsToCreate, function(tag){
+                    var record = Ext.create(model, {
+                        Name: tag
+                    });
+                    promises.push(record.save({
+                        callback: function(result, operation) {
+                            console.log('tag save returned',operation);
+                            var deferred = Ext.create('Deft.Deferred');
+                            if(operation.wasSuccessful()) {
+                                deferred.resolve(result);
+                            } else {
+                                deferred.reject(operation);
+                            }
+                            return deferred;
+                        }
+                    }));
+                });
+                Deft.Promise.all(promises).then({
+                    success: function(results){
+                        deferred.resolve(results);
+                    },
+                    failure: function(operation){
+                        deferred.reject(operation);
+                    }
+                });
+            }
+        });
+        return deferred;
     },
      _initApp: function(){
         this.cbRelease= this.down('#criteria_box').add({
@@ -127,14 +207,6 @@ Ext.define("team-dependency-board", {
             fetch: ['FormattedID','Iteration','Project','Name','Tags','PlanEstimate','Feature'],
             model: 'HierarchicalRequirement',
             filters:  this._getFilters(releaseName),
-            //    [{
-            //    property: 'Release.Name',
-            //    value: releaseName
-            //},{
-            //    property: 'Tags.Name',
-            //    operator: 'contains',
-            //    value: this.dependencyTag
-            //}],
             autoLoad: true,
             listeners: {
                 scope: this,
@@ -186,19 +258,16 @@ Ext.define("team-dependency-board", {
                 showRankMenuItems: false,
                 showSplitMenuItem: false,
                 showColorIcon: true,
-                showReadyIcon: true,
-                showBlockedIcon: false
+                showReadyIcon: false,
+                showBlockedIcon: false,
+                showAddChildMenuItem: false,
+                showCopyTasksFrom: false,
+                showDependencyStatus: true,
+                tagDependencyRef: this.tagRefs[this.dependencyTag],
+                tagAcceptedRef: this.tagRefs[this.acceptedDependencyTag]
             },
             storeConfig: {
                 filters: this._getFilters(releaseName)
-                //    [{
-                //    property: 'Release.Name',
-                //    value: releaseName
-                //},{
-                //    property: 'Tags.Name',
-                //    operator: 'contains',
-                //    value: this.dependencyTag
-                //}]
             }
         });
     },
@@ -218,5 +287,4 @@ Ext.define("team-dependency-board", {
         }));
         return filters;
     }
-
 });
