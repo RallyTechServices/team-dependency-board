@@ -9,10 +9,11 @@ Ext.define("team-dependency-board", {
         {xtype:'tsinfolink'}
     ],
     dependencyTag: 'Dependency',
-    acceptedDependencyTag: 'Accepted Dependency',
-    tagRefs: {},
-    tagsOfInterest: ['Dependency','Impediment','Blocker','Accepted Dependency'],
+    acceptedDependencyTag: 'Agreed to Dependency',
+    tagsOfInterest: ['Dependency','Impediment','Blocker','Agreed to Dependency'],
     giveTagPattern: 'Issuer:',
+
+    tagRefs: {},
     /**
      * controls
      */
@@ -49,7 +50,7 @@ Ext.define("team-dependency-board", {
                 if (!this.tagRefs[this.acceptedDependencyTag] || !this.tagRefs[this.dependencyTag]){
                     this.add({
                         xtype: 'container',
-                        html: Ext.String.format('Please verify the necessary tags for this app have been created:<br/> <li><b>{0}</b></li><li><b>{1}</li></b>',
+                        html: Ext.String.format('Please verify the necessary tags for this app have been created or change them in the configuration in the code:<br/> <li><b>{0}</b></li><li><b>{1}</li></b>',
                             this.acceptedDependencyTag, this.dependencyTag)
                     });
                 } else {
@@ -234,7 +235,7 @@ Ext.define("team-dependency-board", {
         if (this.down('#rally-board')){
             this.down('#rally-board').destroy();
         }
-
+        var tagsToFilter = ['^' + this.giveTagPattern].concat(this.tagsOfInterest);
         this.down('#display_box').add({
             itemId: 'rally-board',
             xtype: 'rallycardboard',
@@ -264,7 +265,8 @@ Ext.define("team-dependency-board", {
                 showCopyTasksFrom: false,
                 showDependencyStatus: true,
                 tagDependencyRef: this.tagRefs[this.dependencyTag],
-                tagAcceptedRef: this.tagRefs[this.acceptedDependencyTag]
+                tagAcceptedRef: this.tagRefs[this.acceptedDependencyTag],
+                tagsToFilter: tagsToFilter
             },
             storeConfig: {
                 filters: this._getFilters(releaseName)

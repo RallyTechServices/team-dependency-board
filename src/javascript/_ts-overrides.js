@@ -84,11 +84,11 @@ Ext.override(Rally.ui.cardboard.plugin.CardIcons, {
     _hasDependencyTag: function(){
         var record = this.card.record,
             hasDependency = false,
-            dependencyTags = ['Dependency','Accepted Dependency'];
+            dependencyTags = [this.card.tagDependencyRef,this.card.tagAcceptedRef];
 
         if (record && record.get('Tags') && record.get('Tags')._tagsNameArray){
             _.each(record.get('Tags')._tagsNameArray, function(t){
-                if (Ext.Array.contains(dependencyTags, t.Name)){
+                if (Ext.Array.contains(dependencyTags, t._ref)){
                     hasDependency = true;
                 }
             });
@@ -172,7 +172,7 @@ Ext.override(Rally.ui.cardboard.plugin.CardIcons, {
         if (iconEl) {
             var record = this.card.getRecord(),
                 isAccepted = this.card.isApprovedDependency(),
-                text = isAccepted ? 'Mark Dependency as Not Accepted' : 'Mark Dependency as Accepted';
+                text = isAccepted ? 'Remove Agreement to Dependency' : 'Agree to Dependency';
 
             iconEl.set({
                 'title': text,
@@ -468,8 +468,8 @@ Ext.override(Rally.ui.cardboard.plugin.CardContentLeft, {
         var card = this.card,
             modelField = card.getRecord().getField(fieldDefinition.name),
             hasData = (Ext.isFunction(fieldDefinition.hasValue) && fieldDefinition.hasValue()) || card.getRecord().hasValue(modelField),
-            isRenderable = hasData || (modelField && modelField.isCollection());
-
+            isRenderable = hasData || (modelField && modelField.isCollection()),
+            tagFilters = this.card.tagsToFilter.join('|');
 
         if (modelField && modelField.isHidden) {
             return null;
@@ -484,7 +484,7 @@ Ext.override(Rally.ui.cardboard.plugin.CardContentLeft, {
             return Ext.create('Rally.technicalservices.renderer.template.FilteredPillTemplate',{
                 collectionName: 'Tags',
                 cls: 'rui-tag-list-item',
-                filterBy: '^Issuer:|Dependency|Impediment|Blocker|Accepted Dependency',
+                filterBy: tagFilters,
                 filterByFlag: "i"
             });
         }
