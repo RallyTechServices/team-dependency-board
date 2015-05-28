@@ -1,3 +1,187 @@
+Ext.override(Rally.ui.cardboard.plugin.CardIcons, {
+    inheritableStatics: {
+        getTpl: function() {
+            if (!this.tpl) {
+                this.tpl = Ext.create('Ext.XTemplate', [
+                    '<tpl if="hasIcons">',
+                        '<div class="rally-card-icons-ct">',
+                        '<tpl if="(showDependencyIcon && isDependencyAccepted) || (hasBlockedField && isBlocked)">',
+                            '<div class="rally-card-icons indicator">',
+                                '<tpl if="(hasBlockedField && isBlocked)">',
+                                    '<div class="indicator-icon icon-blocked"></div>',
+                                '<tpl else>',
+                                    '<div class="indicator-icon icon-thumbs-up"></div>',
+                                '</tpl>',
+                        '<tpl else>',
+                            '<div class="rally-card-icons" style="visibility: hidden;">',
+                        '</tpl>',
+                            '<tpl if="showPlusIcon"><div class="rally-card-icon card-plus-icon icon-add" title="New..." role="img"></div></tpl>',
+                            '<tpl if="showGearIcon"><div class="rally-card-icon card-gear-icon icon-gear" title="Actions..." role="img"></div></tpl>',
+                             //override for dependency update
+                            '<tpl if="showDependencyIcon"><div class="rally-card-icon card-dependency-icon<tpl if="isDependencyAccepted"> rly-active  icon-thumbs-up<tpl else>  icon-thumbs-down</tpl>" role="img"></div></tpl>',
+                            '<tpl if="hasReadyField"><div class="rally-card-icon card-ready-icon<tpl if="isReady"> rly-active</tpl> icon-ok" role="img"></div></tpl>',
+                            '<tpl if="hasBlockedField"><div class="rally-card-icon card-blocked-icon<tpl if="isBlocked"> rly-active</tpl> icon-blocked" role="img"></div></tpl>',
+                            '<tpl if="showColorIcon"><div class="rally-card-icon card-color-icon icon-color" title="Card Color" role="img"></div></tpl>',
+                        '</div>',
+                    '</div>',
+                    '</tpl>'
+                ]);
+            }
+            return this.tpl;
+        }
+    },
+   detachListeners: function() {
+        if (this.card) {
+            var cardEl = this.card.getEl(),
+                el = cardEl && cardEl.down('.rally-card-icons');
+            if (el) {
+                var readyIconEl = el.down('.card-ready-icon'),
+                    blockedIconEl = el.down('.card-blocked-icon'),
+                    dependencyIconEl = el.down('.card-dependency-icon');
+
+                if (readyIconEl) {
+                    readyIconEl.un('click', this._onReadyIconClick, this);
+                }
+                if (blockedIconEl) {
+                    blockedIconEl.un('click', this._onBlockedIconClick, this);
+                }
+                if (dependencyIconEl){
+                    dependencyIconEl.un('click', this._onDependencyClick, this);
+                }
+            }
+        }
+    },
+
+    getHtml: function() {
+        var record = this.card.getRecord(),
+            hasReady = this.showReadyIcon && this._isIconActiveFor('Ready'),
+            hasBlocked = this.showBlockedIcon && this._isIconActiveFor('Blocked'),
+            hasIcons = hasReady || hasBlocked || this.showColorIcon || this.showGearIcon || this.showPlusIcon;
+
+        if (!hasIcons) {
+            return '';
+        }
+        this.card.on('afterrender', this._onAfterCardRender, this);
+        this.card.on('rerender', this._onAfterCardRender, this);
+        this.card.on('show', this._fixStyles, this);
+
+        return this.self.getTpl().apply({
+            hasReadyField: hasReady,
+            hasBlockedField: hasBlocked,
+            hasIcons: hasIcons,
+            showPlusIcon: this.showPlusIcon && this._getPlusMenuItems().length > 0,
+            isBlocked: hasBlocked && !!record.get('Blocked'),
+            isReady: hasReady && !!record.get('Ready'),
+            showGearIcon: this.showGearIcon,
+            showColorIcon: this.showColorIcon,
+            formattedId: record.get('FormattedID'),
+            name: record.get('Name'),
+            //Overrides for dependency thing
+            showDependencyIcon: this._hasDependencyTag(),
+            isDependencyAccepted: this.card.isApprovedDependency()
+        });
+    },
+    _hasDependencyTag: function(){
+        var record = this.card.record,
+            hasDependency = false,
+            dependencyTags = ['Dependency','Accepted Dependency'];
+
+        if (record && record.get('Tags') && record.get('Tags')._tagsNameArray){
+            _.each(record.get('Tags')._tagsNameArray, function(t){
+                if (Ext.Array.contains(dependencyTags, t.Name)){
+                    hasDependency = true;
+                }
+            });
+        }
+        return hasDependency;
+    },
+    _onDependencyClick: function(e){
+        var record = this.card.record,
+            tagStore = record.getCollection('Tags'),
+            fid = record.get('FormattedID');
+
+        var oldTag = this.card.tagDependencyRef,
+            newTag = this.card.tagAcceptedRef;
+        if (this.card.isApprovedDependency()){
+            oldTag = this.card.tagAcceptedRef;
+            newTag = this.card.tagDependencyRef;
+        }
+
+        tagStore.load({
+            scope: this,
+            callback: function() {
+                tagStore.add(newTag);
+                tagStore.remove(oldTag);
+                tagStore.sync({
+                    callback: function(batch, options, success) {
+                        if (batch.exceptions && batch.exceptions.length > 0){
+                            Rally.data.util.Record.showWsapiErrorNotification(record, batch.exceptions[0]);
+                        } else {
+                            this.publish(Rally.Message.objectUpdate, record, ['Tags'], this.card);
+                        }
+                    }
+                });
+            }
+        });
+    },
+    _onAfterCardRender: function() {
+        var card = this.card,
+            cardEl = card.getEl(),
+            el = cardEl.down('.rally-card-icons'),
+            iconEls = el.query('.rally-card-icon'),
+            readyIconEl = el.down('.card-ready-icon'),
+            blockedIconEl = el.down('.card-blocked-icon'),
+            dependencyIconEl = el.down('.card-dependency-icon');
+        this.plusIconEl = el.down('.card-plus-icon');
+        this.gearIconEl = el.down('.card-gear-icon');
+        this.colorIconEl = el.down('.card-color-icon');
+
+        if (iconEls.length) {
+            Ext.fly(iconEls[0]).addCls('rly-left');
+            Ext.fly(iconEls[iconEls.length-1]).addCls('rly-right');
+        }
+
+        if (readyIconEl) {
+            readyIconEl.on('click', this._onReadyIconClick, this);
+            this._setReadyIconTooltip(readyIconEl);
+        }
+        if (blockedIconEl) {
+            blockedIconEl.on('click', this._onBlockedIconClick, this);
+            this._setBlockedIconTooltip(blockedIconEl);
+        }
+        if (this.plusIconEl) {
+            this.plusIconEl.on('click', this._onPlusTriggerClick, this);
+        }
+
+        if (this.gearIconEl) {
+            this.gearIconEl.on('click', this._onGearTriggerClick, this);
+        }
+
+        if (this.colorIconEl) {
+            this.colorIconEl.on('click', this._onColorTriggerClick, this);
+        }
+           if (dependencyIconEl){
+                dependencyIconEl.on('click', this._onDependencyClick, this);
+                this._setDependencyIconTooltip(dependencyIconEl);
+           }
+
+        this._fixStyles();
+    },
+    _setDependencyIconTooltip: function(dependencyIconEl) {
+        var iconEl = dependencyIconEl || this.card.getEl().down('.card-dependency-icon');
+        if (iconEl) {
+            var record = this.card.getRecord(),
+                isAccepted = this.card.isApprovedDependency(),
+                text = isAccepted ? 'Mark Dependency as Not Accepted' : 'Mark Dependency as Accepted';
+
+            iconEl.set({
+                'title': text,
+                'aria-label': text + ' ' + record.get('FormattedID') + ': ' + record.get('Name')
+            });
+        }
+    }
+});
+
 Ext.override(Rally.ui.cardboard.CardBoard,{
 
     _buildColumnsFromModel: function() {
@@ -7,7 +191,6 @@ Ext.override(Rally.ui.cardboard.CardBoard,{
             if ( this.attribute === "Iteration" ) {
                 var retrievedColumns = [];
                 retrievedColumns.push({
-
                     value: null,
                     columnHeaderConfig: {
                         headerTpl: "{name}",
@@ -16,7 +199,6 @@ Ext.override(Rally.ui.cardboard.CardBoard,{
                         }
                     }
                 });
-
                 this._getLocalIterations(retrievedColumns);
             }
         }
@@ -254,6 +436,27 @@ Ext.override(Rally.ui.cardboard.Card,{
         html.push('</div>');
 
         return html.join('\n');
+    },
+    shouldShowReadyBorder: function () {
+        //(this.isReady() && this.showReadyIcon)
+        return  (this.showDependencyStatus && this.isApprovedDependency());
+    },
+    isApprovedDependency: function(){
+        /**
+         * override for dependency thing
+         */
+        var record = this.record,
+            isDependencyAccepted = false;
+
+        if (record && record.get('Tags') && record.get('Tags')._tagsNameArray){
+            _.each(record.get('Tags')._tagsNameArray, function(t){
+
+                if (t._ref == this.tagAcceptedRef){
+                    isDependencyAccepted = true;
+                }
+            }, this);
+        }
+        return isDependencyAccepted;
     }
 });
 
@@ -281,7 +484,7 @@ Ext.override(Rally.ui.cardboard.plugin.CardContentLeft, {
             return Ext.create('Rally.technicalservices.renderer.template.FilteredPillTemplate',{
                 collectionName: 'Tags',
                 cls: 'rui-tag-list-item',
-                filterBy: '^Issuer:|Dependency|Impediment',
+                filterBy: '^Issuer:|Dependency|Impediment|Blocker|Accepted Dependency',
                 filterByFlag: "i"
             });
         }
