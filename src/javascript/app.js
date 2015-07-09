@@ -5,7 +5,7 @@ Ext.define("team-dependency-board", {
     defaults: { margin: 10 },
     items: [
         {xtype:'container',itemId:'criteria_box', layout: {type: 'hbox'}},
-        {xtype:'container',itemId:'display_box'},
+        {xtype:'container',itemId:'display_box', cls: 'dependency-board'},
         {xtype:'tsinfolink'}
     ],
     dependencyTag: 'Dependency',
@@ -150,10 +150,12 @@ Ext.define("team-dependency-board", {
                     return '(--)';
                 }
             },
+
             {
                 dataIndex: 'Project',
                 cls: 'cardLowerLeft',
                 renderer: function(value,meta_data,record){
+                    console.log('record:',record);
                     var project = record.get('Project');
                     var project_name = "";
                     if (project){
@@ -172,7 +174,16 @@ Ext.define("team-dependency-board", {
                     if (giver.length == 0){
                         giver = giveTagPrefix + " (Not tagged)<br/>";
                     }
-                    return Ext.String.format("{0}Receiver: {1}",giver, project_name);
+                    
+                    var ops = record.get( 'c_DCOpsKanban' );
+                    if ( !Ext.isEmpty(ops) ) {
+                        ops = "DC Ops Kanban: " + ops + "<br/>";
+                    }
+                    
+                    var creation = "Created: " + Ext.util.Format.date(record.get('CreationDate'),'m/d/Y') + "<br/>";
+                    var need = "Need by: " + Ext.util.Format.date(record.get('c_NeedByDate'),'m/d/Y') + "<br/>";
+
+                    return Ext.String.format("{0}{1}{2}{3}Receiver: {4}",ops,creation,need,giver, project_name);
                 }
             },
             {
@@ -205,7 +216,9 @@ Ext.define("team-dependency-board", {
         var releaseName = this.cbRelease.getRecord().get(this.cbRelease.displayField);
 
         Ext.create('Rally.data.wsapi.Store',{
-            fetch: ['FormattedID','Iteration','Project','Name','Tags','PlanEstimate','Feature'],
+            fetch: ['FormattedID','Iteration','Project','Name',
+                'Tags','PlanEstimate','Feature',
+                'c_DCOpsKanban','CreationDate','c_NeedByDate'],
             model: 'HierarchicalRequirement',
             filters:  this._getFilters(releaseName),
             autoLoad: true,
@@ -245,6 +258,10 @@ Ext.define("team-dependency-board", {
             iterationNameFilter: this._getIterationNameFilter(releaseName),
             enableRanking: false,
             enableCrossColumnRanking: false,
+            plugins: [
+                
+                {ptype: 'rallyfixedheadercardboard'}
+            ],
             columnConfig: {
                 enableCrossRowDragging: false,
                 dropControllerConfig: false,
@@ -254,7 +271,7 @@ Ext.define("team-dependency-board", {
                 field: 'Project'
             },
             cardConfig: {
-                fields: ['Name','Feature','Tags','PlanEstimate'],
+                fields: ['Name','Feature','c_DCOpsKanban','CreationDate','c_NeedByDate','Tags','PlanEstimate'],
                 showPlusIcon: false,
                 showRankMenuItems: false,
                 showSplitMenuItem: false,
@@ -270,7 +287,8 @@ Ext.define("team-dependency-board", {
             },
             storeConfig: {
                 filters: this._getFilters(releaseName)
-            }
+            },
+            height: this.getHeight() - 100
         });
     },
     _getFilters: function(releaseName){
