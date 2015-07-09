@@ -258,7 +258,7 @@ Ext.define("team-dependency-board", {
                 field: 'Project'
             },
             cardConfig: {
-                fields: ['Name','Feature','Tags','PlanEstimate'],
+                fields: ['Name','Feature','Tags','PlanEstimate','c_DCOpsKanban','CreationDate','c_NeedByDate'],
                 showPlusIcon: false,
                 showRankMenuItems: false,
                 showSplitMenuItem: false,
