@@ -3,11 +3,11 @@
 <head>
     <title>Team Dependency Board</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Thu Jul 09 2015 10:57:45 GMT-0700 (PDT) -->
+    <!--  Build Date: Thu Jul 09 2015 11:54:47 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Thu Jul 09 2015 10:57:45 GMT-0700 (PDT)";
-        var CHECKSUM = 40375172311;
+        var APP_BUILD_DATE = "Thu Jul 09 2015 11:54:47 GMT-0700 (PDT)";
+        var CHECKSUM = 41320066421;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -936,10 +936,12 @@ Ext.define("team-dependency-board", {
                     return '(--)';
                 }
             },
+
             {
                 dataIndex: 'Project',
                 cls: 'cardLowerLeft',
                 renderer: function(value,meta_data,record){
+                    console.log('record:',record);
                     var project = record.get('Project');
                     var project_name = "";
                     if (project){
@@ -958,7 +960,16 @@ Ext.define("team-dependency-board", {
                     if (giver.length == 0){
                         giver = giveTagPrefix + " (Not tagged)<br/>";
                     }
-                    return Ext.String.format("{0}Receiver: {1}",giver, project_name);
+                    
+                    var ops = record.get( 'c_DCOpsKanban' );
+                    if ( !Ext.isEmpty(ops) ) {
+                        ops = "DC Ops Kanban: " + ops + "<br/>";
+                    }
+                    
+                    var creation = "Created: " + Ext.util.Format.date(record.get('CreationDate'),'m/d/Y') + "<br/>";
+                    var need = "Need by: " + Ext.util.Format.date(record.get('c_NeedByDate'),'m/d/Y') + "<br/>";
+
+                    return Ext.String.format("{0}{1}{2}{3}Receiver: {4}",ops,creation,need,giver, project_name);
                 }
             },
             {
@@ -991,7 +1002,9 @@ Ext.define("team-dependency-board", {
         var releaseName = this.cbRelease.getRecord().get(this.cbRelease.displayField);
 
         Ext.create('Rally.data.wsapi.Store',{
-            fetch: ['FormattedID','Iteration','Project','Name','Tags','PlanEstimate','Feature'],
+            fetch: ['FormattedID','Iteration','Project','Name',
+                'Tags','PlanEstimate','Feature',
+                'c_DCOpsKanban','CreationDate','c_NeedByDate'],
             model: 'HierarchicalRequirement',
             filters:  this._getFilters(releaseName),
             autoLoad: true,
@@ -1044,7 +1057,7 @@ Ext.define("team-dependency-board", {
                 field: 'Project'
             },
             cardConfig: {
-                fields: ['Name','Feature','Tags','PlanEstimate','c_DCOpsKanban','CreationDate','c_NeedByDate'],
+                fields: ['Name','Feature','c_DCOpsKanban','CreationDate','c_NeedByDate','Tags','PlanEstimate'],
                 showPlusIcon: false,
                 showRankMenuItems: false,
                 showSplitMenuItem: false,
