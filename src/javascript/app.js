@@ -5,7 +5,7 @@ Ext.define("team-dependency-board", {
     defaults: { margin: 10 },
     items: [
         {xtype:'container',itemId:'criteria_box', layout: {type: 'hbox'}},
-        {xtype:'container',itemId:'display_box'},
+        {xtype:'container',itemId:'display_box', cls: 'dependency-board'},
         {xtype:'tsinfolink'}
     ],
     dependencyTag: 'Dependency',
@@ -245,6 +245,10 @@ Ext.define("team-dependency-board", {
             iterationNameFilter: this._getIterationNameFilter(releaseName),
             enableRanking: false,
             enableCrossColumnRanking: false,
+            plugins: [
+                
+                {ptype: 'rallyfixedheadercardboard'}
+            ],
             columnConfig: {
                 enableCrossRowDragging: false,
                 dropControllerConfig: false,
@@ -270,7 +274,8 @@ Ext.define("team-dependency-board", {
             },
             storeConfig: {
                 filters: this._getFilters(releaseName)
-            }
+            },
+            height: this.getHeight() - 100
         });
     },
     _getFilters: function(releaseName){

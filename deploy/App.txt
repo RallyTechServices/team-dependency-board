@@ -3,11 +3,11 @@
 <head>
     <title>Team Dependency Board</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Thu May 28 2015 10:49:08 GMT-0700 (PDT) -->
+    <!--  Build Date: Thu Jul 09 2015 09:26:37 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Thu May 28 2015 10:49:08 GMT-0700 (PDT)";
-        var CHECKSUM = 39721094352;
+        var APP_BUILD_DATE = "Thu Jul 09 2015 09:26:37 GMT-0700 (PDT)";
+        var CHECKSUM = 40258336764;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -791,7 +791,7 @@ Ext.define("team-dependency-board", {
     defaults: { margin: 10 },
     items: [
         {xtype:'container',itemId:'criteria_box', layout: {type: 'hbox'}},
-        {xtype:'container',itemId:'display_box'},
+        {xtype:'container',itemId:'display_box', cls: 'dependency-board'},
         {xtype:'tsinfolink'}
     ],
     dependencyTag: 'Dependency',
@@ -1031,6 +1031,10 @@ Ext.define("team-dependency-board", {
             iterationNameFilter: this._getIterationNameFilter(releaseName),
             enableRanking: false,
             enableCrossColumnRanking: false,
+            plugins: [
+                
+                {ptype: 'rallyfixedheadercardboard'}
+            ],
             columnConfig: {
                 enableCrossRowDragging: false,
                 dropControllerConfig: false,
@@ -1056,7 +1060,8 @@ Ext.define("team-dependency-board", {
             },
             storeConfig: {
                 filters: this._getFilters(releaseName)
-            }
+            },
+            height: this.getHeight() - 100
         });
     },
     _getFilters: function(releaseName){
@@ -1143,6 +1148,14 @@ Ext.define("team-dependency-board", {
 .card-dependency-icon{
 
 }
+
+.dependency-board {
+     
+     overflow-y: hidden !important;
+ }
+.dependency-board>.cardboard {
+     overflow-y: hidden;
+ }
 
 <style type="text/css" title="printCards">
 /* PLEASE LEAVE THIS STYLESHEET INLINE SINCE TITLE IS NECESSARY */
