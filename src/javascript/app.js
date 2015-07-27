@@ -12,6 +12,10 @@ Ext.define("team-dependency-board", {
     acceptedDependencyTag: 'Agreed to Dependency',
     tagsOfInterest: ['Dependency','Impediment','Blocker','Agreed to Dependency'],
     giveTagPattern: 'Issuer:',
+    cardFields: ['Name','Feature','c_DCOpsKanban','CreationDate','c_NeedByDate','c_BlockerEstimatedResolutionDate','Tags','PlanEstimate'],
+    fetchFields: ['FormattedID','Iteration','Project','Name',
+        'Tags','PlanEstimate','Feature',
+        'c_DCOpsKanban','CreationDate','c_NeedByDate','ScheduleState'],
 
     tagRefs: {},
     /**
@@ -181,8 +185,8 @@ Ext.define("team-dependency-board", {
                     
                     var creation = "Created: " + Ext.util.Format.date(record.get('CreationDate'),'m/d/Y') + "<br/>";
                     var need = "Need by: " + Ext.util.Format.date(record.get('c_NeedByDate'),'m/d/Y') + "<br/>";
-
-                    return Ext.String.format("{0}{1}{2}{3}Receiver: {4}",ops,creation,need,giver, project_name);
+                    var resolution = "Est. Resolution: " + Ext.util.Format.date(record.get('c_BlockerEstimatedResolutionDate'),'m/d/Y') + "<br/>";
+                    return Ext.String.format("{0}{1}{2}{3}{4}Receiver: {5}",ops,creation,need,resolution, giver, project_name);
                 }
             },
             {
@@ -216,9 +220,7 @@ Ext.define("team-dependency-board", {
 
         Ext.create('Rally.data.wsapi.Store',{
 
-            fetch: ['FormattedID','Iteration','Project','Name',
-                'Tags','PlanEstimate','Feature',
-                'c_DCOpsKanban','CreationDate','c_NeedByDate'],
+            fetch: this.fetchFields,
             model: 'HierarchicalRequirement',
             filters:  this._getFilters(releaseName),
             autoLoad: true,
@@ -271,7 +273,7 @@ Ext.define("team-dependency-board", {
                 field: 'Project'
             },
             cardConfig: {
-                fields: ['Name','Feature','c_DCOpsKanban','CreationDate','c_NeedByDate','Tags','PlanEstimate'],
+                fields: this.cardFields,
                 showPlusIcon: false,
                 showRankMenuItems: false,
                 showSplitMenuItem: false,
@@ -286,7 +288,8 @@ Ext.define("team-dependency-board", {
                 tagsToFilter: tagsToFilter
             },
             storeConfig: {
-                filters: this._getFilters(releaseName)
+                filters: this._getFilters(releaseName),
+                fetch: this.fetchFields
             },
             height: this.getHeight() - 100
         });

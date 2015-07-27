@@ -3,10 +3,10 @@
 <head>
     <title>Team Dependency Board</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Thu Jul 09 2015 11:54:47 GMT-0700 (PDT) -->
+    <!--  Build Date: Sun Jul 26 2015 20:04:27 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Thu Jul 09 2015 11:54:47 GMT-0700 (PDT)";
+        var APP_BUILD_DATE = "Sun Jul 26 2015 20:04:27 GMT-0600 (MDT)";
         var CHECKSUM = [%= checksum %];
     </script>
     
