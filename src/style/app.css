@@ -20,6 +20,14 @@
 
 }
 
+.dependency-board {
+     
+     overflow-y: hidden !important;
+ }
+.dependency-board>.cardboard {
+     overflow-y: hidden;
+ }
+
 <style type="text/css" title="printCards">
 /* PLEASE LEAVE THIS STYLESHEET INLINE SINCE TITLE IS NECESSARY */
 @media print {
