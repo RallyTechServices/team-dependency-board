@@ -77,7 +77,6 @@ Ext.define("team-dependency-board", {
                     });
                     promises.push(record.save({
                         callback: function(result, operation) {
-                            console.log('tag save returned',operation);
                             var deferred = Ext.create('Deft.Deferred');
                             if(operation.wasSuccessful()) {
                                 deferred.resolve(result);
@@ -205,7 +204,7 @@ Ext.define("team-dependency-board", {
         var releaseName = this.cbRelease.getRecord().get(this.cbRelease.displayField);
 
         Ext.create('Rally.data.wsapi.Store',{
-            fetch: ['FormattedID','Iteration','Project','Name','Tags','PlanEstimate','Feature'],
+            fetch: ['FormattedID','Iteration','Project','Name','Tags','PlanEstimate','Feature','c_BlockerResolutionDate'],
             model: 'HierarchicalRequirement',
             filters:  this._getFilters(releaseName),
             autoLoad: true,
