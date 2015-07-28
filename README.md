@@ -28,3 +28,9 @@ For example, if Release 3 is selected, only iterations that overlap with the Rel
 If "Future Release" is selected, only iterations that overlap with the Future Release timebox will be displayed, but the iteration names will not be filtered by a specific prefix.
 
 ![ScreenShot] (/images/team-dependency-board.png)
+
+####Updates 2015-07-28
+*  Added Estimated Blocker Resolution time (if populated for the story)
+*  Added a checkbox toggle to show the items that are "Done" - by default the items that are "Done" are hidden from the board.  "Done" means that the dependency has been Agreed to and is also in the Accepted state.  If a story is in the accepted state, but has not been Agreed to, it will still show up on the board.  
+*  If a story is in the Accepted State, it will show up with a gray background and lighter text.  
+*  Made the Sprint Name text slightly smaller.  
