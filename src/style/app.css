@@ -174,4 +174,20 @@ body {
     width: 4.3in;
 }
 
+.card-table-done {
+    table-layout: fixed;
+    width: 100%;
+    background-color: #f6f6f6;
+}
+
+.rui-field-value-done {
+    clear: both;
+    background: transparent;
+    color: #888!important;
+}
+
+.column-header {
+    font-size: 14px!important;
+}
+
 </style>

@@ -3,11 +3,11 @@
 <head>
     <title>Team Dependency Board</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Sun Jul 26 2015 20:04:27 GMT-0600 (MDT) -->
+    <!--  Build Date: Tue Jul 28 2015 16:22:57 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Sun Jul 26 2015 20:04:27 GMT-0600 (MDT)";
-        var CHECKSUM = 42336188422;
+        var APP_BUILD_DATE = "Tue Jul 28 2015 16:22:57 GMT-0700 (PDT)";
+        var CHECKSUM = 46513466360;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -155,13 +155,18 @@ Ext.override(Rally.ui.cardboard.plugin.CardIcons, {
                         '<tpl else>',
                             '<div class="rally-card-icons" style="visibility: hidden;">',
                         '</tpl>',
-                            '<tpl if="showPlusIcon"><div class="rally-card-icon card-plus-icon icon-add" title="New..." role="img"></div></tpl>',
-                            '<tpl if="showGearIcon"><div class="rally-card-icon card-gear-icon icon-gear" title="Actions..." role="img"></div></tpl>',
-                             //override for dependency update
-                            '<tpl if="showDependencyIcon"><div class="rally-card-icon card-dependency-icon<tpl if="isDependencyAccepted"> rly-active  icon-thumbs-up<tpl else>  icon-thumbs-down</tpl>" role="img"></div></tpl>',
-                            '<tpl if="hasReadyField"><div class="rally-card-icon card-ready-icon<tpl if="isReady"> rly-active</tpl> icon-ok" role="img"></div></tpl>',
-                            '<tpl if="hasBlockedField"><div class="rally-card-icon card-blocked-icon<tpl if="isBlocked"> rly-active</tpl> icon-blocked" role="img"></div></tpl>',
-                            '<tpl if="showColorIcon"><div class="rally-card-icon card-color-icon icon-color" title="Card Color" role="img"></div></tpl>',
+                            //'<tpl if="isDone">',
+                            //    '<div class="rally-card-icon card-dependency-icon rly-active icon-thumbs-up" role="img">Done</div>',
+                            //
+                            //'<tpl else>',
+                                '<tpl if="showPlusIcon"><div class="rally-card-icon card-plus-icon icon-add" title="New..." role="img"></div></tpl>',
+                                '<tpl if="showGearIcon"><div class="rally-card-icon card-gear-icon icon-gear" title="Actions..." role="img"></div></tpl>',
+                                 //override for dependency update
+                                '<tpl if="showDependencyIcon"><div class="rally-card-icon card-dependency-icon<tpl if="isDependencyAccepted"> rly-active  icon-thumbs-up<tpl else>  icon-thumbs-down</tpl>" role="img"></div></tpl>',
+                                '<tpl if="hasReadyField"><div class="rally-card-icon card-ready-icon<tpl if="isReady"> rly-active</tpl> icon-ok" role="img"></div></tpl>',
+                                '<tpl if="hasBlockedField"><div class="rally-card-icon card-blocked-icon<tpl if="isBlocked"> rly-active</tpl> icon-blocked" role="img"></div></tpl>',
+                                '<tpl if="showColorIcon"><div class="rally-card-icon card-color-icon icon-color" title="Card Color" role="img"></div></tpl>',
+                         //   '</tpl>',
                         '</div>',
                     '</div>',
                     '</tpl>'
@@ -196,7 +201,8 @@ Ext.override(Rally.ui.cardboard.plugin.CardIcons, {
         var record = this.card.getRecord(),
             hasReady = this.showReadyIcon && this._isIconActiveFor('Ready'),
             hasBlocked = this.showBlockedIcon && this._isIconActiveFor('Blocked'),
-            hasIcons = hasReady || hasBlocked || this.showColorIcon || this.showGearIcon || this.showPlusIcon;
+            hasIcons = hasReady || hasBlocked || this.showColorIcon || this.showGearIcon || this.showPlusIcon,
+            isDone = this._isDone(record);
 
         if (!hasIcons) {
             return '';
@@ -218,8 +224,12 @@ Ext.override(Rally.ui.cardboard.plugin.CardIcons, {
             name: record.get('Name'),
             //Overrides for dependency thing
             showDependencyIcon: this._hasDependencyTag(),
-            isDependencyAccepted: this.card.isApprovedDependency()
+            isDependencyAccepted: this.card.isApprovedDependency(),
+            isDone: isDone
         });
+    },
+    _isDone: function(record){
+        return record.get('ScheduleState') == "Accepted";
     },
     _hasDependencyTag: function(){
         var record = this.card.record,
@@ -540,7 +550,8 @@ Ext.override(Rally.ui.cardboard.Card,{
     defaultColor: "#FF0000",
     _buildHtml: function () {
         var html = [],
-            bg_color = '#FFFFFF';
+            done_class = "card-table",
+            is_done = this.record.get('ScheduleState') == "Accepted";
 
         var artifactColorDiv = {
             tag: 'div',
@@ -557,12 +568,12 @@ Ext.override(Rally.ui.cardboard.Card,{
                 };
             }
         }
-        if (this.record.get('ScheduleState') == "Accepted"){
-            bg_color = '#f6f6f6';
+        if (is_done){
+            done_class = "card-table-done";
         }
 
         html.push(Ext.DomHelper.createHtml(artifactColorDiv));
-        html.push(Ext.String.format('<div class="card-table-ct"><table class="card-table" style="background-color:{0}"><tr>', bg_color));
+        html.push(Ext.String.format('<div class="card-table-ct"><table class="{0}"><tr>', done_class));
 
         Ext.Array.push(
             html,
@@ -580,7 +591,12 @@ Ext.override(Rally.ui.cardboard.Card,{
 
         html.push('</div>');
 
-        return html.join('\n');
+        html = html.join('\n');
+        if (is_done){
+            html = html.replace('class="rui-field-value"','class="rui-field-value-done"');
+        }
+
+        return html;
     },
     shouldShowReadyBorder: function () {
         //(this.isReady() && this.showReadyIcon)
@@ -898,6 +914,7 @@ Ext.define("team-dependency-board", {
         this.cbRelease= this.down('#criteria_box').add({
             xtype: 'rallyreleasecombobox',
             stateful: true,
+            itemId: 'cb-release',
             stateId: this.getContext().getScopedStateId('cb-release'),
             listeners: {
                 scope: this,
@@ -911,6 +928,15 @@ Ext.define("team-dependency-board", {
              listeners: {
                  scope: this,
                  click: this._print
+             }
+         });
+         this.down('#criteria_box').add({
+             xtype: 'rallycheckboxfield',
+             itemId: 'chk-show-done',
+             fieldLabel: 'Show done items',
+             listeners: {
+                 scope: this,
+                 change: this._releaseSelected
              }
          });
     },
@@ -949,7 +975,6 @@ Ext.define("team-dependency-board", {
                 dataIndex: 'Project',
                 cls: 'cardLowerLeft',
                 renderer: function(value,meta_data,record){
-                    console.log('record:',record);
                     var project = record.get('Project');
                     var project_name = "";
                     if (project){
@@ -1022,8 +1047,10 @@ Ext.define("team-dependency-board", {
         });
     },
     _releaseSelected: function(cb){
+        var cb = this.down('#cb-release');
         var releaseName = cb.getRecord().get(cb.displayField);
-        this._updateCardboard(releaseName);
+        var showDoneItems = this.down('#chk-show-done').getValue() || false;
+        this._updateCardboard(releaseName, showDoneItems);
     },
     _getIterationNameFilter: function(releaseName){
         var iterationNameFilter = null;
@@ -1035,8 +1062,8 @@ Ext.define("team-dependency-board", {
         }
         return iterationNameFilter;
     },
-    _updateCardboard: function(releaseName){
-        this.logger.log('_updateCardboard for release ', releaseName);
+    _updateCardboard: function(releaseName, showDoneItems){
+        this.logger.log('_updateCardboard for release ', releaseName, showDoneItems);
 
         if (this.down('#rally-board')){
             this.down('#rally-board').destroy();
@@ -1084,9 +1111,11 @@ Ext.define("team-dependency-board", {
             },
             height: this.getHeight() - 100
         });
+
     },
     _getFilters: function(releaseName){
-        var filters = [];
+        var filters = [],
+            dependency_tag = this.dependencyTag;
         Ext.each(this.tagsOfInterest, function(tag){
             filters.push(Ext.create('Rally.data.wsapi.Filter', {
                 property: 'Tags.Name',
@@ -1099,6 +1128,30 @@ Ext.define("team-dependency-board", {
             property: 'Release.Name',
             value: releaseName
         }));
+
+        var show_done = this.down('#chk-show-done').getValue() || false;
+        if (!show_done){
+            var filters = filters.and(Ext.create('Rally.data.wsapi.Filter',{
+                property: 'ScheduleState',
+                operator: '!=',
+                value: "Accepted"
+            }));
+
+            var done_filters = Ext.create('Rally.data.wsapi.Filter',{
+                property: 'Tags.Name',
+                operator: 'contains',
+                value: dependency_tag
+            });
+            done_filters = done_filters.and(Ext.create('Rally.data.wsapi.Filter',{
+                property: 'ScheduleState',
+                value: "Accepted"
+            }));
+            done_filters = done_filters.and(Ext.create('Rally.data.wsapi.Filter',{
+                property: "Release.Name",
+                value: releaseName
+            }));
+            filters = filters.or(done_filters);
+        }
         return filters;
     }
 });
@@ -1322,6 +1375,22 @@ body {
     height: 2.4in;
     overflow: hidden;
     width: 4.3in;
+}
+
+.card-table-done {
+    table-layout: fixed;
+    width: 100%;
+    background-color: #f6f6f6;
+}
+
+.rui-field-value-done {
+    clear: both;
+    background: transparent;
+    color: #888!important;
+}
+
+.column-header {
+    font-size: 14px!important;
 }
 
 </style>
