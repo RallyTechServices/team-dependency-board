@@ -15,13 +15,18 @@ Ext.override(Rally.ui.cardboard.plugin.CardIcons, {
                         '<tpl else>',
                             '<div class="rally-card-icons" style="visibility: hidden;">',
                         '</tpl>',
-                            '<tpl if="showPlusIcon"><div class="rally-card-icon card-plus-icon icon-add" title="New..." role="img"></div></tpl>',
-                            '<tpl if="showGearIcon"><div class="rally-card-icon card-gear-icon icon-gear" title="Actions..." role="img"></div></tpl>',
-                             //override for dependency update
-                            '<tpl if="showDependencyIcon"><div class="rally-card-icon card-dependency-icon<tpl if="isDependencyAccepted"> rly-active  icon-thumbs-up<tpl else>  icon-thumbs-down</tpl>" role="img"></div></tpl>',
-                            '<tpl if="hasReadyField"><div class="rally-card-icon card-ready-icon<tpl if="isReady"> rly-active</tpl> icon-ok" role="img"></div></tpl>',
-                            '<tpl if="hasBlockedField"><div class="rally-card-icon card-blocked-icon<tpl if="isBlocked"> rly-active</tpl> icon-blocked" role="img"></div></tpl>',
-                            '<tpl if="showColorIcon"><div class="rally-card-icon card-color-icon icon-color" title="Card Color" role="img"></div></tpl>',
+                            //'<tpl if="isDone">',
+                            //    '<div class="rally-card-icon card-dependency-icon rly-active icon-thumbs-up" role="img">Done</div>',
+                            //
+                            //'<tpl else>',
+                                '<tpl if="showPlusIcon"><div class="rally-card-icon card-plus-icon icon-add" title="New..." role="img"></div></tpl>',
+                                '<tpl if="showGearIcon"><div class="rally-card-icon card-gear-icon icon-gear" title="Actions..." role="img"></div></tpl>',
+                                 //override for dependency update
+                                '<tpl if="showDependencyIcon"><div class="rally-card-icon card-dependency-icon<tpl if="isDependencyAccepted"> rly-active  icon-thumbs-up<tpl else>  icon-thumbs-down</tpl>" role="img"></div></tpl>',
+                                '<tpl if="hasReadyField"><div class="rally-card-icon card-ready-icon<tpl if="isReady"> rly-active</tpl> icon-ok" role="img"></div></tpl>',
+                                '<tpl if="hasBlockedField"><div class="rally-card-icon card-blocked-icon<tpl if="isBlocked"> rly-active</tpl> icon-blocked" role="img"></div></tpl>',
+                                '<tpl if="showColorIcon"><div class="rally-card-icon card-color-icon icon-color" title="Card Color" role="img"></div></tpl>',
+                         //   '</tpl>',
                         '</div>',
                     '</div>',
                     '</tpl>'
@@ -56,7 +61,8 @@ Ext.override(Rally.ui.cardboard.plugin.CardIcons, {
         var record = this.card.getRecord(),
             hasReady = this.showReadyIcon && this._isIconActiveFor('Ready'),
             hasBlocked = this.showBlockedIcon && this._isIconActiveFor('Blocked'),
-            hasIcons = hasReady || hasBlocked || this.showColorIcon || this.showGearIcon || this.showPlusIcon;
+            hasIcons = hasReady || hasBlocked || this.showColorIcon || this.showGearIcon || this.showPlusIcon,
+            isDone = this._isDone(record);
 
         if (!hasIcons) {
             return '';
@@ -78,8 +84,12 @@ Ext.override(Rally.ui.cardboard.plugin.CardIcons, {
             name: record.get('Name'),
             //Overrides for dependency thing
             showDependencyIcon: this._hasDependencyTag(),
-            isDependencyAccepted: this.card.isApprovedDependency()
+            isDependencyAccepted: this.card.isApprovedDependency(),
+            isDone: isDone
         });
+    },
+    _isDone: function(record){
+        return record.get('ScheduleState') == "Accepted";
     },
     _hasDependencyTag: function(){
         var record = this.card.record,
@@ -399,7 +409,9 @@ Ext.override(Rally.ui.cardboard.Column,{
 Ext.override(Rally.ui.cardboard.Card,{
     defaultColor: "#FF0000",
     _buildHtml: function () {
-        var html = [];
+        var html = [],
+            done_class = "card-table",
+            is_done = this.record.get('ScheduleState') == "Accepted";
 
         var artifactColorDiv = {
             tag: 'div',
@@ -416,8 +428,12 @@ Ext.override(Rally.ui.cardboard.Card,{
                 };
             }
         }
+        if (is_done){
+            done_class = "card-table-done";
+        }
+
         html.push(Ext.DomHelper.createHtml(artifactColorDiv));
-        html.push('<div class="card-table-ct"><table class="card-table"><tr>');
+        html.push(Ext.String.format('<div class="card-table-ct"><table class="{0}"><tr>', done_class));
 
         Ext.Array.push(
             html,
@@ -435,7 +451,12 @@ Ext.override(Rally.ui.cardboard.Card,{
 
         html.push('</div>');
 
-        return html.join('\n');
+        html = html.join('\n');
+        if (is_done){
+            html = html.replace('class="rui-field-value"','class="rui-field-value-done"');
+        }
+
+        return html;
     },
     shouldShowReadyBorder: function () {
         //(this.isReady() && this.showReadyIcon)

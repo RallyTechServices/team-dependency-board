@@ -12,6 +12,10 @@ Ext.define("team-dependency-board", {
     acceptedDependencyTag: 'Agreed to Dependency',
     tagsOfInterest: ['Dependency','Impediment','Blocker','Agreed to Dependency'],
     giveTagPattern: 'Issuer:',
+    cardFields: ['Name','Feature','c_DCOpsKanban','CreationDate','c_NeedByDate','c_BlockerEstimatedResolutionDate','Tags','PlanEstimate'],
+    fetchFields: ['FormattedID','Iteration','Project','Name',
+        'Tags','PlanEstimate','Feature',
+        'c_DCOpsKanban','CreationDate','c_NeedByDate','ScheduleState'],
 
     tagRefs: {},
     /**
@@ -77,7 +81,6 @@ Ext.define("team-dependency-board", {
                     });
                     promises.push(record.save({
                         callback: function(result, operation) {
-                            console.log('tag save returned',operation);
                             var deferred = Ext.create('Deft.Deferred');
                             if(operation.wasSuccessful()) {
                                 deferred.resolve(result);
@@ -104,6 +107,7 @@ Ext.define("team-dependency-board", {
         this.cbRelease= this.down('#criteria_box').add({
             xtype: 'rallyreleasecombobox',
             stateful: true,
+            itemId: 'cb-release',
             stateId: this.getContext().getScopedStateId('cb-release'),
             listeners: {
                 scope: this,
@@ -117,6 +121,15 @@ Ext.define("team-dependency-board", {
              listeners: {
                  scope: this,
                  click: this._print
+             }
+         });
+         this.down('#criteria_box').add({
+             xtype: 'rallycheckboxfield',
+             itemId: 'chk-show-done',
+             fieldLabel: 'Show done items',
+             listeners: {
+                 scope: this,
+                 change: this._releaseSelected
              }
          });
     },
@@ -155,7 +168,6 @@ Ext.define("team-dependency-board", {
                 dataIndex: 'Project',
                 cls: 'cardLowerLeft',
                 renderer: function(value,meta_data,record){
-                    console.log('record:',record);
                     var project = record.get('Project');
                     var project_name = "";
                     if (project){
@@ -182,8 +194,8 @@ Ext.define("team-dependency-board", {
                     
                     var creation = "Created: " + Ext.util.Format.date(record.get('CreationDate'),'m/d/Y') + "<br/>";
                     var need = "Need by: " + Ext.util.Format.date(record.get('c_NeedByDate'),'m/d/Y') + "<br/>";
-
-                    return Ext.String.format("{0}{1}{2}{3}Receiver: {4}",ops,creation,need,giver, project_name);
+                    var resolution = "Est. Resolution: " + Ext.util.Format.date(record.get('c_BlockerEstimatedResolutionDate'),'m/d/Y') + "<br/>";
+                    return Ext.String.format("{0}{1}{2}{3}{4}Receiver: {5}",ops,creation,need,resolution, giver, project_name);
                 }
             },
             {
@@ -216,9 +228,8 @@ Ext.define("team-dependency-board", {
         var releaseName = this.cbRelease.getRecord().get(this.cbRelease.displayField);
 
         Ext.create('Rally.data.wsapi.Store',{
-            fetch: ['FormattedID','Iteration','Project','Name',
-                'Tags','PlanEstimate','Feature',
-                'c_DCOpsKanban','CreationDate','c_NeedByDate'],
+
+            fetch: this.fetchFields,
             model: 'HierarchicalRequirement',
             filters:  this._getFilters(releaseName),
             autoLoad: true,
@@ -229,8 +240,10 @@ Ext.define("team-dependency-board", {
         });
     },
     _releaseSelected: function(cb){
+        var cb = this.down('#cb-release');
         var releaseName = cb.getRecord().get(cb.displayField);
-        this._updateCardboard(releaseName);
+        var showDoneItems = this.down('#chk-show-done').getValue() || false;
+        this._updateCardboard(releaseName, showDoneItems);
     },
     _getIterationNameFilter: function(releaseName){
         var iterationNameFilter = null;
@@ -242,8 +255,8 @@ Ext.define("team-dependency-board", {
         }
         return iterationNameFilter;
     },
-    _updateCardboard: function(releaseName){
-        this.logger.log('_updateCardboard for release ', releaseName);
+    _updateCardboard: function(releaseName, showDoneItems){
+        this.logger.log('_updateCardboard for release ', releaseName, showDoneItems);
 
         if (this.down('#rally-board')){
             this.down('#rally-board').destroy();
@@ -271,7 +284,7 @@ Ext.define("team-dependency-board", {
                 field: 'Project'
             },
             cardConfig: {
-                fields: ['Name','Feature','c_DCOpsKanban','CreationDate','c_NeedByDate','Tags','PlanEstimate'],
+                fields: this.cardFields,
                 showPlusIcon: false,
                 showRankMenuItems: false,
                 showSplitMenuItem: false,
@@ -286,13 +299,16 @@ Ext.define("team-dependency-board", {
                 tagsToFilter: tagsToFilter
             },
             storeConfig: {
-                filters: this._getFilters(releaseName)
+                filters: this._getFilters(releaseName),
+                fetch: this.fetchFields
             },
             height: this.getHeight() - 100
         });
+
     },
     _getFilters: function(releaseName){
-        var filters = [];
+        var filters = [],
+            dependency_tag = this.dependencyTag;
         Ext.each(this.tagsOfInterest, function(tag){
             filters.push(Ext.create('Rally.data.wsapi.Filter', {
                 property: 'Tags.Name',
@@ -305,6 +321,30 @@ Ext.define("team-dependency-board", {
             property: 'Release.Name',
             value: releaseName
         }));
+
+        var show_done = this.down('#chk-show-done').getValue() || false;
+        if (!show_done){
+            var filters = filters.and(Ext.create('Rally.data.wsapi.Filter',{
+                property: 'ScheduleState',
+                operator: '!=',
+                value: "Accepted"
+            }));
+
+            var done_filters = Ext.create('Rally.data.wsapi.Filter',{
+                property: 'Tags.Name',
+                operator: 'contains',
+                value: dependency_tag
+            });
+            done_filters = done_filters.and(Ext.create('Rally.data.wsapi.Filter',{
+                property: 'ScheduleState',
+                value: "Accepted"
+            }));
+            done_filters = done_filters.and(Ext.create('Rally.data.wsapi.Filter',{
+                property: "Release.Name",
+                value: releaseName
+            }));
+            filters = filters.or(done_filters);
+        }
         return filters;
     }
 });
