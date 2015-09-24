@@ -307,32 +307,38 @@ Ext.define("team-dependency-board", {
 
     },
     _getFilters: function(releaseName){
-        var filters = [],
+        this.logger.log('_getFilters', releaseName);
+        var tag_filters = [],
             dependency_tag = this.dependencyTag;
+
+        var filters = Ext.create('Rally.data.wsapi.Filter',{
+            property: 'Release.Name',
+            value: releaseName
+        });
+
         Ext.each(this.tagsOfInterest, function(tag){
-            filters.push(Ext.create('Rally.data.wsapi.Filter', {
+            tag_filters.push(Ext.create('Rally.data.wsapi.Filter', {
                 property: 'Tags.Name',
-                operator: 'contains',
+                operator: '=',
                 value: tag
             }));
         });
-        filters = Rally.data.wsapi.Filter.or(filters);
-        filters = filters.and(Ext.create('Rally.data.wsapi.Filter',{
-            property: 'Release.Name',
-            value: releaseName
-        }));
+        tag_filters = Rally.data.wsapi.Filter.or(tag_filters);
+
+        filters = filters.and(tag_filters);
 
         var show_done = this.down('#chk-show-done').getValue() || false;
+        console.log('show_done', show_done);
         if (!show_done){
-            var filters = filters.and(Ext.create('Rally.data.wsapi.Filter',{
+            filters = filters.and(Ext.create('Rally.data.wsapi.Filter',{
                 property: 'ScheduleState',
-                operator: '!=',
+                operator: '<',
                 value: "Accepted"
             }));
 
             var done_filters = Ext.create('Rally.data.wsapi.Filter',{
                 property: 'Tags.Name',
-                operator: 'contains',
+                operator: '=',
                 value: dependency_tag
             });
             done_filters = done_filters.and(Ext.create('Rally.data.wsapi.Filter',{
